@@ -6,7 +6,7 @@ authors = ["Necdet Arda Etiman"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/Necoo33/qubl-rs"
-categories = ["database-implementations", "development-tools", "web", "accesibility"]
+categories = ["database-implementations", "development-tools"]
 keywords = ["sql-query", "query-builder", "sql-queries", "build", "sql"]
 description = "Low level And flexible query builder that gives you full control of your queries."
 
