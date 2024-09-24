@@ -57,7 +57,7 @@ impl QueryBuilder {
         match QueryBuilder::sanitize(columns.clone()) {
             Ok(_) => (),
             Err(_) => {
-                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on update constructor: because inserted arbitrary query on columns parameter."))
+                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on insert constructor: because inserted arbitrary query on columns parameter."))
             }
         }
 
@@ -66,7 +66,7 @@ impl QueryBuilder {
         match QueryBuilder::sanitize(get_actual_values.clone()) {
             Ok(_) => (),
             Err(_) => {
-                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on update constructor: because inserted arbitrary query in values parameter."))
+                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on insert constructor: because inserted arbitrary query in values parameter."))
 
             }
         }
@@ -88,7 +88,15 @@ impl QueryBuilder {
                             columns_string = format!("{}{}, ", columns_string, column);
 
                             match vtype {
-                                ValueType::String => values_string = format!("{}'{}', ", values_string, value),
+                                ValueType::String => {
+                                    if value.contains('"') {
+                                        values_string = format!("{}'{}', ", values_string, value)
+                                    } else if value.contains("'") {
+                                        values_string = format!("{}'{}', ", values_string, value)
+                                    } else {
+                                        values_string = format!("{}'{}', ", values_string, value)
+                                    }
+                                },
                                 ValueType::Integer => values_string = format!("{}{}, ", values_string, value),
                                 ValueType::Float => values_string = format!("{}{}, ", values_string, value),
                                 ValueType::Boolean => values_string = format!("{}{}, ", values_string, value),
@@ -97,7 +105,15 @@ impl QueryBuilder {
                             columns_string = format!("{}{})", columns_string, column);
 
                             match vtype {
-                                ValueType::String => values_string = format!("{}'{}')", values_string, value),
+                                ValueType::String => {
+                                    if value.contains('"') {
+                                        values_string = format!("{}'{}')", values_string, value)
+                                    } else if value.contains("'") {
+                                        values_string = format!("{}'{}')", values_string, value)
+                                    } else {
+                                        values_string = format!("{}'{}')", values_string, value)
+                                    }
+                                },
                                 ValueType::Integer => values_string = format!("{}{})", values_string, value),
                                 ValueType::Float => values_string = format!("{}{})", values_string, value),
                                 ValueType::Boolean => values_string = format!("{}{})", values_string, value),
@@ -152,7 +168,15 @@ impl QueryBuilder {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
-                    ValueType::String => self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0),
+                    ValueType::String => {
+                        if value.0.contains('"') {
+                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0)
+                        } else if value.0.contains("'") {
+
+                        } else {
+                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0)
+                        }
+                    }
                     ValueType::Integer => self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value.0),
                     ValueType::Float => self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value.0),
                     ValueType::Boolean => {
@@ -439,14 +463,33 @@ impl QueryBuilder {
         };
 
         for field in fields.into_iter() {
-            if field.contains("'") ||
-               field.contains('"') ||
-               field.contains(";") ||
+            if (field.contains(";") && (field.len() < 40)) ||
+               field.contains("; DROP") ||
+               field.contains("admin' #") ||
+               field.contains("admin'/*") ||
+               field.contains("; UNION") ||
                field.contains("OR 1 = 1") ||
-               field.contains("-") ||
+               field.contains("OR 1 = 1#") ||
+               field.contains("OR 1 = 1/*") ||
+               field.contains("OR true = true") ||
+               field.contains("OR false = false") ||
+               field.contains("OR '1' = '1'") ||
+               field.contains("OR '1' = '1'#") ||
+               field.contains("OR '1' = '1'/*") ||
+               field.contains("; SLEEP(") ||
+               field.contains("; Sleep(") ||
+               field.contains("; sleep(") ||
+               field.contains("--") ||
                field.contains("DROP TABLE") ||
                field.contains("DROP SCHEMA") ||
-               field.contains("UNION SELECT") {
+               field.contains("SELECT IF") ||
+               field.contains("UNION SELECT") ||
+               field.contains("UNION ALL") ||
+               field.contains("EXEC") ||
+               field.contains("master..") ||
+               field.contains("masters..") ||
+               field.contains("WAITFOR") ||
+               field.contains("DELAY") {
                 return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "You cannot run arbitrary queries"))
                }
         }
@@ -463,4 +506,28 @@ pub enum QueryType {
 #[derive(Debug, Clone)]
 pub enum ValueType {
     String, Boolean, Integer, Float 
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_insert_query(){
+        let columns = vec!["title", "author", "description"];
+        let values = vec![("What's Up?", ValueType::String), ("John Doe", ValueType::String), ("Lorem ipsum dolor sit amet, consectetur adipiscing elit.", ValueType::String)];
+    
+        let insert_query = QueryBuilder::insert(columns, values).unwrap().table("blogs").finish();
+
+        println!("{}", insert_query);
+        assert_eq!("INSERT INTO blogs (title, author, description) VALUES ('What's Up?', 'John Doe', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.');".to_string(), 
+                    insert_query);
+    }
+
+    #[test]
+    pub fn test_update_query(){
+        let update_query = QueryBuilder::update().unwrap().table("blogs").set("title", ("Hello Rust!", ValueType::String)).set("author", ("Necdet", ValueType::String)).finish();
+
+        assert_eq!("UPDATE blogs SET title = 'Hello Rust!', author = 'Necdet';", update_query);
+    }
 }
