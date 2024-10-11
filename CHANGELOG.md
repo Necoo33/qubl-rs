@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.0
+
+- Added `SchemaBuilder` struct and implementation, which enables you to create schemas. You can also create `USE` queries with that.
+- Now `.select()` constructor of `QueryBuilder` supports `SELECT *` queries by giving a vector of it's argument which first element is "*".
+- Added additional test cases.
+- Upgraded the algorithm of `sanitize()` function for better sanitizing queries. Also added `KeywordList` enum and "list" field on builder. It lets us to more aggresively format the query string for specific cases.
+
 ## v0.2.0
 
 upgraded the algorithm of `sanitize()` function for better sanitizing queries.
