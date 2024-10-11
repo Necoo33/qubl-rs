@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.1
+
+- Documentation fixed.
+
 ## v0.3.0
 
 - Added `SchemaBuilder` struct and implementation, which enables you to create schemas. You can also create `USE` queries with that.

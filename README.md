@@ -85,7 +85,7 @@ let finish_the_select_query = select_query.table("products").where_cond("price",
                       ("25", ValueType::Integer), ("123456", ValueType::String), ("arda_etiman_799@windowslive.com", ValueType::String),
                       ("75.65", ValueType::Float), ("true", ValueType::Boolean)];
 
-    let insert_query = Nequb::insert(columns, values).unwrap().table("users").finish();
+    let insert_query = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
 
 ```
 
@@ -93,7 +93,7 @@ let finish_the_select_query = select_query.table("products").where_cond("price",
 
 ```rust
 
-let mut delete_query = Nequb::delete().unwrap();
+let mut delete_query = QueryBuilder::delete().unwrap();
 
 delete_query.table("users");
 delete_query.where_cond("age", "<", ("25", ValueType::Integer));
@@ -106,7 +106,7 @@ let delete_query = delete_query.finish();
 
 ```rust
 
-    let mut update_query = Nequb::update().unwrap();
+    let mut update_query = QueryBuilder::update().unwrap();
 
     update_query = update_query.table("users")
                                .set("name", ("necdet", ValueType::String))
