@@ -658,6 +658,309 @@ impl SchemaBuilder {
 }
 
 #[derive(Debug, Clone)]
+pub struct TableBuilder {
+    pub query: String,
+    pub name: String,
+    pub schema: String,
+    pub all: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ForeignKey {
+    pub first: ForeignKeyItem,
+    pub second: ForeignKeyItem,
+    pub on_delete: Option<ForeignKeyActions>,
+    pub on_update: Option<ForeignKeyActions>,
+    pub constraint: Option<String>
+}
+
+#[derive(Debug, Clone)]
+pub struct ForeignKeyItem {
+    pub table: String,
+    pub column: String
+}
+
+impl TableBuilder {
+    pub fn create(schema_name: &str, table_name: &str) -> Self {
+        return Self {
+            query: format!("CREATE TABLE {} (", table_name),
+            schema: schema_name.to_string(),
+            name: table_name.to_string(),
+            all: vec![]
+        }
+    }
+
+    pub fn if_not_exists(&mut self) -> &mut Self {
+        self.query = format!("{}IF NOT EXISTS (", self.query.replace("(", ""));
+
+        self
+    }
+
+    pub fn add_column(&mut self, column_name: &str) -> &mut Self {
+        if self.query.ends_with("(") {
+            self.query = format!("{}{}", self.query, column_name)
+        } else {
+            self.query = format!("{}, {}", self.query, column_name)
+        }
+
+        self
+    }
+
+    pub fn col_type(&mut self, type_name: &str) -> &mut Self {
+        if self.query.ends_with("(") {
+            panic!("Cannot add type before defining a column name.")
+        }
+
+        self.query = format!("{} {}", self.query, type_name);
+
+        self
+    }
+
+    pub fn null(&mut self) -> &mut Self {
+        self.query = format!("{} NULL", self.query);
+
+        self
+    }
+
+    pub fn not_null(&mut self) -> &mut Self {
+        self.query = format!("{} NOT NULL", self.query);
+
+        self
+    }
+
+    pub fn auto_increment(&mut self) -> &mut Self {
+        self.query = format!("{} AUTO_INCREMENT", self.query);
+
+        self
+    }
+
+    pub fn primary_key(&mut self) -> &mut Self {
+        if self.query.contains("PRIMARY KEY") {
+            panic!("A table cannot have two primary keys.")
+        }
+
+        self.query = format!("{} PRIMARY KEY", self.query);
+
+        self
+    }
+
+    pub fn default(&mut self, value: (&str, ValueType)) -> &mut Self {
+        let split_the_query = self.query.clone();
+        let split_the_query = split_the_query.split(", ").collect::<Vec<&str>>();
+
+        let last_query = split_the_query[split_the_query.len() - 1];
+
+        if last_query.contains("INT") || 
+           last_query.contains("TINYINT") ||
+           last_query.contains("SMALLINT") ||
+           last_query.contains("MEDIUMINT") ||
+           last_query.contains("BIGINT") ||
+           last_query.contains("BIT") ||
+           last_query.contains("SERIAL") {
+            match value.1 {
+                ValueType::Integer => self.query = format!("{} DEFAULT {}", self.query, value.0),
+                _ => panic!("Error: If your column has the of the types of INT, TINYINT, SMALLINT, MEDIUMINT, BIGINT, BIT or SERIAL, it has to be an integer.")
+            }
+        }
+
+        if last_query.contains("BOOL") || 
+           last_query.contains("BOOLEAN") {
+            match value.1 {
+                ValueType::Boolean => self.query = format!("{} DEFAULT {}", self.query, value.0),
+                _ => panic!("If your column type is BOOLEAN, you have to write either true or false.")
+            }    
+        }
+
+        if last_query.contains("CHAR") ||
+           last_query.contains("VARCHAR") ||
+           last_query.contains("TEXT") ||
+           last_query.contains("TINYTEXT") ||
+           last_query.contains("MEDIUMTEXT") ||
+           last_query.contains("LONGTEXT") ||
+           last_query.contains("BINARY") ||
+           last_query.contains("VARBINARY") {
+            match value.1 {
+                ValueType::String => self.query = format!("{} DEFAULT '{}'", self.query, value.0),
+                _ => panic!("Error: if your column type is one of the types of CHAR, VARCHAR, TEXT, TINYTEXT, MEDIUMTEXT, LONGTEXT, BINARY or VARBINARY, your value type has to be String.")
+            }
+        }
+
+        if last_query.contains("DATETIME") ||
+           last_query.contains("TIMESTAMP") {
+            match value.1 {
+                ValueType::String => self.query = format!("{} DEFAULT {}", self.query, value.0),
+                _ => panic!("Error: if your column type is one of the types of CHAR, VARCHAR, TEXT, TINYTEXT, MEDIUMTEXT, LONGTEXT, BINARY or VARBINARY, your value type has to be String.")
+            }
+        }
+
+        self
+    }
+
+    pub fn unique(&mut self) -> &mut Self {
+        self.query = format!("{} UNIQUE", self.query);
+
+        self
+    }
+
+    pub fn check(&mut self, condition: &str) -> &mut Self {
+        self.query = format!("{} CHECK({})", self.query, condition);
+
+        self
+    }
+
+    pub fn character_set(&mut self, character_set: &str) -> &mut Self {
+        self.query = format!("{} CHARACTER SET {}", self.query, character_set);
+
+        self
+    }
+
+    pub fn foreign_key(&mut self, opts: ForeignKey) -> &mut Self {
+        if self.query.starts_with("ALTER TABLE") {
+            match opts.constraint {
+                Some(constraint) => self.query = format!("{}, ADD CONSTRAINT {} FOREIGN KEY ({})", self.query, constraint, opts.first.column),
+                None => self.query = format!("{}, ADD FOREIGN KEY ({})", self.query, opts.first.column)
+            }
+            
+        } else {
+            match opts.constraint {
+                Some(constraint) => self.query = format!("{}, CONSTRAINT {} FOREIGN KEY ({})", self.query, constraint, opts.first.column),
+                None => self.query = format!("{}, FOREIGN KEY ({})", self.query, opts.first.column)
+            }
+        }
+
+        self.query = format!("{} REFERENCES {}({})", self.query, opts.second.table, opts.second.column);
+
+        match opts.on_delete {
+            Some(on_delete_opt) => self.query = format!("{} ON DELETE {}", self.query, on_delete_opt),
+            None => ()
+        }
+
+        match opts.on_update {
+            Some(on_update_opt) => self.query = format!("{} ON UPDATE {}", self.query, on_update_opt),
+            None => ()
+        }
+
+        self
+    }
+
+    pub fn unsigned(&mut self) -> &mut Self {
+        self.query = format!("{} UNSIGNED", self.query);
+
+        self
+    }
+
+    pub fn zerofill(&mut self) -> &mut Self {
+        self.query = format!("{} ZEROFILL", self.query);
+
+        self
+    }
+
+    pub fn enum_sql(&mut self, enum_vec: Vec<&str>) -> &mut Self {
+        self.query = format!("{} ENUM(", self.query);
+
+        let length_of_enum_vec = enum_vec.len();
+        for (index, item) in enum_vec.into_iter().enumerate() {
+            if index + 1 == length_of_enum_vec {
+                self.query = format!("{}'{}'", self.query, item)
+            } else {
+                self.query = format!("{}'{}', ", self.query, item)
+            }
+        }
+
+        self
+    }
+
+    pub fn generated_always(&mut self, condition: &str) -> &mut Self {
+        self.query = format!("{} GENERATED ALWAYS AS {}", self.query, condition);
+
+        self
+    }
+
+    pub fn virtual_sql(&mut self) -> &mut Self {
+        self.query = format!("{} VIRTUAL", self.query);
+
+        self
+    }
+
+    pub fn stored(&mut self) -> &mut Self {
+        self.query = format!("{} STORED", self.query);
+
+        self
+    }
+
+    pub fn spatial(&mut self) -> &mut Self {
+        self.query = format!("{} SPATIAL", self.query);
+
+        self
+    }
+
+    pub fn generated(&mut self) -> &mut Self {
+        self.query = format!("{} GENERATED", self.query);
+
+        self
+    }
+
+    pub fn index(&mut self, indexes: Vec<&str>) -> &mut Self {
+        let length_of_indexes = indexes.len();
+
+        match length_of_indexes {
+            0 => panic!("There is no index here."),
+            1 => self.query = format!("{}, INDEX({})", self.query, indexes[0]),
+            _ => {
+                for (i, index) in indexes.into_iter().enumerate() {
+                    if i + 1 == length_of_indexes {
+                        self.query = format!("{}{}", self.query, index);
+
+                        continue;
+                    }
+
+                    if i == 0 {
+                        self.query = format!("{}, INDEX ({}, ", self.query, index);
+
+                        continue;
+                    }
+
+                    self.query = format!("{}{}, ", self.query, index)
+                }
+            }
+        }
+
+        self
+    }
+
+    pub fn comment(&mut self, comment: &str) -> &mut Self {
+        self.query = format!("{} COMMENT '{}'", self.query, comment);
+
+        self
+    }
+
+    pub fn default_on_null(&mut self, value: (&str, ValueType)) -> &mut Self {
+        match value.1 {
+            ValueType::String => self.query = format!("{} DEFAULT '{}' ON NULL", self.query, value.0),
+            _ => self.query = format!("{} DEFAULT {} ON NULL", self.query, value.0),
+        }
+
+        self
+    }
+
+    pub fn invisible(&mut self) -> &mut Self {
+        self.query = format!("{} INVISIBLE", self.query);
+
+        self
+    }
+
+    pub fn custom_query(&mut self, query: &str) -> &mut Self {
+        self.query = format!("{} {}", self.query, query);
+
+        self
+    }
+
+    pub fn finish(&mut self) -> String {
+        return format!("{});", self.query)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Table, Where, Or, And, Set, Finish, OrderBy, Like, Limit, Offset, IfNotExist, Create, Use 
 }
@@ -670,6 +973,23 @@ pub enum QueryType {
 #[derive(Debug, Clone)]
 pub enum ValueType {
     String, Boolean, Integer, Float 
+}
+
+#[derive(Debug, Clone)]
+pub enum ForeignKeyActions {
+    Cascade, Restrict, SetNull, NoAction, SetDefault
+}
+
+impl std::fmt::Display for ForeignKeyActions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            &ForeignKeyActions::Cascade => write!(f, "CASCADE"),
+            &ForeignKeyActions::NoAction => write!(f, "NO ACTION"),
+            &ForeignKeyActions::Restrict => write!(f, "RESTRICT"),
+            &ForeignKeyActions::SetNull => write!(f, "SET NULL"),
+            &ForeignKeyActions::SetDefault => write!(f, "SET DEFAULT")
+        }
+    }
 }
 
 #[cfg(test)]
@@ -749,5 +1069,32 @@ mod test {
         let finish_the_select_query = select_query.finish();
 
         assert_eq!("SELECT * FROM blogs WHERE id = 5 OR id = 25;", finish_the_select_query);
+    }
+
+    #[test]
+    pub fn test_create_table() {
+        let mut table_builder_2 = TableBuilder::create("blabla", "projects");
+        let table_builder_2 = table_builder_2.if_not_exists();
+    
+        table_builder_2.add_column("id").col_type("INT").primary_key().auto_increment();
+        table_builder_2.add_column("name").col_type("VARCHAR(40)").not_null();
+        table_builder_2.add_column("owner_id").col_type("INT").not_null();
+        
+        // if we create a table, the first ForeignKeyItem's table field is not necessary.
+        let opts = ForeignKey {
+            first: ForeignKeyItem { table: "".to_string(), column: "owner_id".to_string() },
+            second: ForeignKeyItem { table: "users".to_string(), column: "id".to_string() },
+            constraint: None,
+            on_delete: Some(ForeignKeyActions::Cascade),
+            on_update: None
+        };
+        
+        table_builder_2.foreign_key(opts);
+    
+        let table_builder_2 = table_builder_2.finish();
+
+        let raw_query = "CREATE TABLE projects IF NOT EXISTS (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(40) NOT NULL, owner_id INT NOT NULL, FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE);".to_string();
+
+        assert_eq!(raw_query, table_builder_2);
     }
 }

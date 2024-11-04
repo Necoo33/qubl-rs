@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.0
+
+- Added `TableBuilder` struct and some implementations, which is enough for creating tables and adding relations. In next releases we'll implement other methods for altering tables.
+- Added `ForeignKey` and `ForeignKeyItems` structs and `ForeignKeyActions` enum and implemented `Display` trait for that enum.
+
 ## v0.3.1
 
 - Documentation fixed.
