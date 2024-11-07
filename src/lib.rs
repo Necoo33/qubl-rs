@@ -505,6 +505,17 @@ impl QueryBuilder {
         }
     }
 
+    pub fn append_custom(&mut self, query: &str) -> Self {
+        self.query = format!("{} {}", self.query, query);
+
+        Self { 
+            query: self.query.clone(), 
+            table: self.table.clone(), 
+            qtype: self.qtype.clone(), 
+            list: self.list.clone()
+        }
+    }
+
     pub fn finish(&mut self) -> String {
         self.list.push(KeywordList::Finish);
 

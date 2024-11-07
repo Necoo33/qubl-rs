@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0
+
+- Added `append_custom()` function for my urgent need for using json functions on mysql. In later releases, json functions will be implemented to `QueryBuilder`.
+
 ## v0.4.0
 
 - Added `TableBuilder` struct and some implementations, which is enough for creating tables and adding relations. In next releases we'll implement other methods for altering tables.
