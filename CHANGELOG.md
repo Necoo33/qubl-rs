@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.0
+
+- Added `Time` variant for `ValueType` enum. Added support for column types of time. That values and sql functions are supported to add as sql: `UNIX_TIMESTAMP`, `CURRENT_TIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIME`, `NOW()`, `CURDATE()`, `CURTIME()`. You can also time values as string. For now, timestamps are not supported.
+
 ## v0.5.0
 
 - Added `append_custom()` function for my urgent need for using json functions on mysql. In later releases, json functions will be implemented to `QueryBuilder`.

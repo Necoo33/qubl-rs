@@ -115,6 +115,16 @@ impl QueryBuilder {
                                 ValueType::Integer => values_string = format!("{}{}, ", values_string, value),
                                 ValueType::Float => values_string = format!("{}{}, ", values_string, value),
                                 ValueType::Boolean => values_string = format!("{}{}, ", values_string, value),
+                                ValueType::Time => match value {
+                                    "UNIX_TIMESTAMP" => values_string = format!("{}{}, ", values_string, value),
+                                    "CURRENT_TIMESTAMP" => values_string = format!("{}{}, ", values_string, value),
+                                    "CURRENT_DATE" => values_string = format!("{}{}, ", values_string, value),
+                                    "CURRENT_TIME" => values_string = format!("{}{}, ", values_string, value),
+                                    "NOW()" => values_string = format!("{}{}, ", values_string, value),
+                                    "CURDATE()" => values_string = format!("{}{}, ", values_string, value),
+                                    "CURTIME()" => values_string = format!("{}{}, ", values_string, value),
+                                    _ => values_string = format!("{}'{}', ", values_string, value),
+                                }
                             }
                         } else {
                             columns_string = format!("{}{})", columns_string, column);
@@ -132,6 +142,16 @@ impl QueryBuilder {
                                 ValueType::Integer => values_string = format!("{}{})", values_string, value),
                                 ValueType::Float => values_string = format!("{}{})", values_string, value),
                                 ValueType::Boolean => values_string = format!("{}{})", values_string, value),
+                                ValueType::Time => match value {
+                                    "UNIX_TIMESTAMP" => values_string = format!("{}{})", values_string, value),
+                                    "CURRENT_TIMESTAMP" => values_string = format!("{}{})", values_string, value),
+                                    "CURRENT_DATE" => values_string = format!("{}{})", values_string, value),
+                                    "CURRENT_TIME" => values_string = format!("{}{})", values_string, value),
+                                    "NOW()" => values_string = format!("{}{})", values_string, value),
+                                    "CURDATE()" => values_string = format!("{}{})", values_string, value),
+                                    "CURTIME()" => values_string = format!("{}{})", values_string, value),
+                                    _ => values_string = format!("{}'{}')", values_string, value),
+                                }
                             }
                         }
                     },
@@ -208,7 +228,8 @@ impl QueryBuilder {
                         if value.0 == "false" || value.0 == "FALSE" {
                             self.query = format!("{} WHERE {} {} {}", self.query, column, mark, false);
                         }
-                    }
+                    },
+                    ValueType::Time => self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0),
                 }
 
                 self.list.push(KeywordList::Where);
@@ -248,7 +269,8 @@ impl QueryBuilder {
                         if value.0 == "false" || value.0 == "FALSE" {
                             self.query = format!("{} OR {} {} {}", self.query, column, mark, false);
                         }
-                    }
+                    },
+                    ValueType::Time => self.query = format!("{} OR {} {} '{}'", self.query, column, mark, value.0),
                 }
 
                 self.list.push(KeywordList::Or);
@@ -315,6 +337,31 @@ impl QueryBuilder {
                                 self.query = format!("{} SET {} = {}", self.query, column, false);
                             }
                         }
+                    },
+                    ValueType::Time => {
+                        if self.query.contains("SET") {
+                            match value.0 {
+                                "UNIX_TIMESTAMP" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "CURRENT_TIMESTAMP" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "CURRENT_DATE" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "CURRENT_TIME" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "NOW()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "CURDATE()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                "CURTIME()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
+                                _ => self.query = format!("{}, {} = '{}'", self.query, column, value.0),
+                            }
+                        } else {
+                            match value.0 {
+                                "UNIX_TIMESTAMP" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "CURRENT_TIMESTAMP" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "CURRENT_DATE" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "CURRENT_TIME" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "NOW()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "CURDATE()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                "CURTIME()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
+                                _ => self.query = format!("{} SET {} = '{}'", self.query, column, value.0),
+                            }
+                        }
                     }
                 }
 
@@ -355,7 +402,8 @@ impl QueryBuilder {
                         if value.0 == "false" || value.0 == "FALSE" {
                             self.query = format!("{} AND {} {} {}", self.query, column, mark, false);
                         }
-                    }
+                    },
+                    ValueType::Time => self.query = format!("{} AND {} {} '{}'", self.query, column, mark, value.0),
                 }
 
                 self.list.push(KeywordList::And);
@@ -983,7 +1031,7 @@ pub enum QueryType {
 
 #[derive(Debug, Clone)]
 pub enum ValueType {
-    String, Boolean, Integer, Float 
+    String, Boolean, Integer, Float, Time 
 }
 
 #[derive(Debug, Clone)]
@@ -1107,5 +1155,19 @@ mod test {
         let raw_query = "CREATE TABLE projects IF NOT EXISTS (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(40) NOT NULL, owner_id INT NOT NULL, FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE);".to_string();
 
         assert_eq!(raw_query, table_builder_2);
+    }
+
+    #[test]
+    pub fn test_time_value_type(){
+        let columns = ["name", "password", "last_login"].to_vec();
+        let values = [("necoo33", ValueType::String), ("123456", ValueType::String), ("CURRENT_TIMESTAMP", ValueType::Time)].to_vec();
+    
+        let time_insert_test = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
+
+        assert_eq!(time_insert_test, "INSERT INTO users (name, password, last_login) VALUES ('necoo33', '123456', CURRENT_TIMESTAMP);");
+
+        let time_update_test = QueryBuilder::update().unwrap().table("users").set("last_login", ("CURRENT_TIMESTAMP", ValueType::Time)).where_cond("name", "=", ("necoo33", ValueType::String)).finish();
+
+        assert_eq!(time_update_test, "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE name = 'necoo33';")
     }
 }
