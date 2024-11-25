@@ -1,8 +1,12 @@
 # Changelog
 
+## v0.7.0
+
+- Added unix epoch times support for `Time` variant of `ValueType` enum. If you give a value that's characters are fully convertible to integer or empty strings with that `Time` variant, it applies that value to `FROM_UNIXTIME()` function and converts it to a valid `DATETIME`, so you can add them to column. If you want to store them directly as unix epoch times, then you have to set to column type as `INT` in mysql and set the `ValueType` enum as `Integer` variant.
+
 ## v0.6.0
 
-- Added `Time` variant for `ValueType` enum. Added support for column types of time. That values and sql functions are supported to add as sql: `UNIX_TIMESTAMP`, `CURRENT_TIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIME`, `NOW()`, `CURDATE()`, `CURTIME()`. You can also time values as string. For now, timestamps are not supported.
+- Added `Time` variant for `ValueType` enum. Added support for column types of time. That values and sql functions are supported to add as sql: `UNIX_TIMESTAMP`, `CURRENT_TIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIME`, `NOW()`, `CURDATE()`, `CURTIME()`. You can also time values as string. For now, unix epoch times are not supported.
 
 ## v0.5.0
 

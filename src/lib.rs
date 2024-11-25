@@ -123,7 +123,13 @@ impl QueryBuilder {
                                     "NOW()" => values_string = format!("{}{}, ", values_string, value),
                                     "CURDATE()" => values_string = format!("{}{}, ", values_string, value),
                                     "CURTIME()" => values_string = format!("{}{}, ", values_string, value),
-                                    _ => values_string = format!("{}'{}', ", values_string, value),
+                                    _ => {
+                                        if value.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                                            values_string = format!("{}FROM_UNIXTIME({}), ", values_string, value.trim())
+                                        } else {
+                                            values_string = format!("{}'{}', ", values_string, value)
+                                        }  
+                                    },
                                 }
                             }
                         } else {
@@ -150,7 +156,13 @@ impl QueryBuilder {
                                     "NOW()" => values_string = format!("{}{})", values_string, value),
                                     "CURDATE()" => values_string = format!("{}{})", values_string, value),
                                     "CURTIME()" => values_string = format!("{}{})", values_string, value),
-                                    _ => values_string = format!("{}'{}')", values_string, value),
+                                    _ => {
+                                        if value.split("").collect::<Vec<&str>>().into_iter().all(|char|  char == "" || char.parse::<i32>().is_ok()) {
+                                            values_string = format!("{}FROM_UNIXTIME({}))", values_string, value.trim())
+                                        } else {
+                                            values_string = format!("{}'{}')", values_string, value)
+                                        }  
+                                    },
                                 }
                             }
                         }
@@ -229,7 +241,13 @@ impl QueryBuilder {
                             self.query = format!("{} WHERE {} {} {}", self.query, column, mark, false);
                         }
                     },
-                    ValueType::Time => self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0),
+                    ValueType::Time => { 
+                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                            self.query = format!("{} WHERE {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
+                        } else {
+                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0);
+                        }  
+                    }
                 }
 
                 self.list.push(KeywordList::Where);
@@ -270,7 +288,13 @@ impl QueryBuilder {
                             self.query = format!("{} OR {} {} {}", self.query, column, mark, false);
                         }
                     },
-                    ValueType::Time => self.query = format!("{} OR {} {} '{}'", self.query, column, mark, value.0),
+                    ValueType::Time => {
+                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                            self.query = format!("{} OR {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
+                        } else {
+                            self.query = format!("{} OR {} {} '{}'", self.query, column, mark, value.0);
+                        }  
+                    }
                 }
 
                 self.list.push(KeywordList::Or);
@@ -348,7 +372,15 @@ impl QueryBuilder {
                                 "NOW()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
                                 "CURDATE()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
                                 "CURTIME()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                _ => self.query = format!("{}, {} = '{}'", self.query, column, value.0),
+                                _ => {
+                                    self.query = format!("{}, {} = '{}'", self.query, column, value.0);
+
+                                    if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                                        self.query = format!("{}, {} = FROM_UNIXTIME({})", self.query, column, value.0.trim());
+                                    } else {
+                                        self.query = format!("{}, {} = '{}'", self.query, column, value.0);
+                                    }  
+                                }
                             }
                         } else {
                             match value.0 {
@@ -359,7 +391,13 @@ impl QueryBuilder {
                                 "NOW()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
                                 "CURDATE()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
                                 "CURTIME()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                _ => self.query = format!("{} SET {} = '{}'", self.query, column, value.0),
+                                _ => {
+                                    if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                                        self.query = format!("{} SET {} = FROM_UNIXTIME({})", self.query, column, value.0.trim());
+                                    } else {
+                                        self.query = format!("{} SET {} = '{}'", self.query, column, value.0);
+                                    }  
+                                }
                             }
                         }
                     }
@@ -403,7 +441,13 @@ impl QueryBuilder {
                             self.query = format!("{} AND {} {} {}", self.query, column, mark, false);
                         }
                     },
-                    ValueType::Time => self.query = format!("{} AND {} {} '{}'", self.query, column, mark, value.0),
+                    ValueType::Time => {
+                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                            self.query = format!("{} AND {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
+                        } else {
+                            self.query = format!("{} AND {} {} '{}'", self.query, column, mark, value.0);
+                        }  
+                    }
                 }
 
                 self.list.push(KeywordList::And);
@@ -1169,5 +1213,24 @@ mod test {
         let time_update_test = QueryBuilder::update().unwrap().table("users").set("last_login", ("CURRENT_TIMESTAMP", ValueType::Time)).where_cond("name", "=", ("necoo33", ValueType::String)).finish();
 
         assert_eq!(time_update_test, "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE name = 'necoo33';")
+    }
+
+    #[test]
+    pub fn test_unix_epoch_times(){
+        let columns = ["name", "password", "last_login"].to_vec();
+        let values = [("necoo33", ValueType::String), ("123456", ValueType::String), ("134523452", ValueType::Time)].to_vec();
+    
+        let time_insert_with_unix_epoch_times_test = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
+        assert_eq!(time_insert_with_unix_epoch_times_test, "INSERT INTO users (name, password, last_login) VALUES ('necoo33', '123456', FROM_UNIXTIME(134523452));");
+    
+        let time_update_with_unix_epoch_times_test = QueryBuilder::update().unwrap().table("users").set("last_login", ("3456436", ValueType::Time)).where_cond("name", "=", ("necoo33", ValueType::String)).finish();
+
+        assert_eq!(time_update_with_unix_epoch_times_test, "UPDATE users SET last_login = FROM_UNIXTIME(3456436) WHERE name = 'necoo33';");
+
+        let columns = ["name", "password", "last_login", "created_at"].to_vec();
+
+        let unix_epoch_times_test_3 = QueryBuilder::select(columns).unwrap().table("users").where_cond("created_at", ">", ("3234534", ValueType::Time)).or("last_login", ">=", ("2134432", ValueType::Time)).offset(0).limit(20).finish();
+
+        assert_eq!(unix_epoch_times_test_3, "SELECT name, password, last_login, created_at FROM users WHERE created_at > FROM_UNIXTIME(3234534) OR last_login >= FROM_UNIXTIME(2134432) OFFSET 0 LIMIT 20;")
     }
 }
