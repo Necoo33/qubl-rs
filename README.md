@@ -6,7 +6,7 @@ That builder enforces you to start your sql query from ground up and build it bo
 
 It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`, `UPDATE`.
 
-It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`.
+It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`.
 
 ## Examples
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.0
+
+- Added `.where_in()`, `.where_not_in()`, `.where_in_custom()`, `.where_not_in_custom()` methods for using `IN` operators.
+
 ## v0.7.0
 
 - Added unix epoch times support for `Time` variant of `ValueType` enum. If you give a value that's characters are fully convertible to integer or empty strings with that `Time` variant, it applies that value to `FROM_UNIXTIME()` function and converts it to a valid `DATETIME`, so you can add them to column. If you want to store them directly as unix epoch times, then you have to set to column type as `INT` in mysql and set the `ValueType` enum as `Integer` variant.

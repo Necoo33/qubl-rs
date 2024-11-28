@@ -272,6 +272,134 @@ impl QueryBuilder {
         }
     }
 
+    pub fn where_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> Self {
+        self.query = format!("{} WHERE {} IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            match value.1 {
+                ValueType::String => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}'{}')", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}'{}', ", self.query, value.0);
+                },
+                ValueType::Integer => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}{})", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}{}, ", self.query, value.0);
+                },
+                ValueType::Float => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}{})", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}{}, ", self.query, value.0);
+                },
+                ValueType::Boolean => {
+                    if length_of_ins > 1 {
+                        panic!("Error: if your value type is boolean and you cannot pass more than one IN parameter.");
+                    }
+    
+                    self.query = format!("{}{})", self.query, value.0);
+                },
+                ValueType::Time => panic!("Not supported for now. If you want to search time types with IN operator use '.where_in_custom()' instead.")
+            }
+        }
+
+        return Self {
+            query: self.query.clone(),
+            table: self.table.clone(),
+            qtype: self.qtype.clone(),
+            list: self.list.clone()
+        }
+    }
+
+    pub fn where_not_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> Self {
+        self.query = format!("{} WHERE {} NOT IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            match value.1 {
+                ValueType::String => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}'{}')", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}'{}', ", self.query, value.0);
+                },
+                ValueType::Integer => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}{})", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}{}, ", self.query, value.0);
+                },
+                ValueType::Float => {
+                    if index + 1 == length_of_ins {
+                        self.query = format!("{}{})", self.query, value.0);
+                    
+                        continue;
+                    }
+
+                    self.query = format!("{}{}, ", self.query, value.0);
+                },
+                ValueType::Boolean => {
+                    if length_of_ins > 1 {
+                        panic!("Error: if your value type is boolean and you cannot pass more than one IN parameter.");
+                    }
+    
+                    self.query = format!("{}{})", self.query, value.0);
+                },
+                ValueType::Time => panic!("Not supported for now. If you want to search time types with IN operator use '.where_in_custom()' instead.")
+            }
+        }
+
+        return Self {
+            query: self.query.clone(),
+            table: self.table.clone(),
+            qtype: self.qtype.clone(),
+            list: self.list.clone()
+        }
+    }
+
+    pub fn where_in_custom(&mut self, column: &str, query: &str) -> Self {
+        self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
+
+        return Self {
+            query: self.query.clone(),
+            table: self.table.clone(),
+            qtype: self.qtype.clone(),
+            list: self.list.clone()
+        }
+    }
+
+    pub fn where_not_in_custom(&mut self, column: &str, query: &str) -> Self {
+        self.query = format!("{} WHERE {} NOT IN ({})", self.query, column, query);
+
+        return Self {
+            query: self.query.clone(),
+            table: self.table.clone(),
+            qtype: self.qtype.clone(),
+            list: self.list.clone()
+        }
+    }
+
     pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
@@ -1232,5 +1360,36 @@ mod test {
         let unix_epoch_times_test_3 = QueryBuilder::select(columns).unwrap().table("users").where_cond("created_at", ">", ("3234534", ValueType::Time)).or("last_login", ">=", ("2134432", ValueType::Time)).offset(0).limit(20).finish();
 
         assert_eq!(unix_epoch_times_test_3, "SELECT name, password, last_login, created_at FROM users WHERE created_at > FROM_UNIXTIME(3234534) OR last_login >= FROM_UNIXTIME(2134432) OFFSET 0 LIMIT 20;")
+    }
+
+    #[test]
+    pub fn test_where_ins(){
+        let columns = ["name", "age", "id", "last_login"].to_vec();
+
+        let ids = [("1", ValueType::Integer), ("12", ValueType::Integer), ("8", ValueType::Integer)].to_vec();
+
+        let test_where_in = QueryBuilder::select(columns).unwrap().table("users").where_in("id", ids).finish();
+
+        assert_eq!(test_where_in, "SELECT name, age, id, last_login FROM users WHERE id IN (1, 12, 8);");
+
+        let columns = ["name", "age", "id", "last_login"].to_vec();
+
+        let ids = [("1", ValueType::Integer), ("12", ValueType::Integer), ("8", ValueType::Integer)].to_vec();
+
+        let test_where_not_in = QueryBuilder::select(columns).unwrap().table("users").where_not_in("id", ids).finish();
+
+        assert_eq!(test_where_not_in, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);");
+
+        let columns = ["name", "age", "id", "last_login"].to_vec();
+
+        let test_where_in_custom = QueryBuilder::select(columns).unwrap().table("users").where_in_custom("id", "1, 12, 8").finish();
+
+        assert_eq!(test_where_in_custom, "SELECT name, age, id, last_login FROM users WHERE id IN (1, 12, 8);");
+
+        let columns = ["name", "age", "id", "last_login"].to_vec();
+
+        let test_where_not_in_custom = QueryBuilder::select(columns).unwrap().table("users").where_not_in_custom("id", "1, 12, 8").finish();
+
+        assert_eq!(test_where_not_in_custom, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);")
     }
 }
