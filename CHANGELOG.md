@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.9.0
+
+- Added `count()` constructor to `QueryBuilder` struct for creating count queries and added `Count` variant to `QueryType` and `KeywordList` enums. Also added `In` and `NotIn` variants to `KeywordList` enum.
+
 ## v0.8.0
 
 - Added `.where_in()`, `.where_not_in()`, `.where_in_custom()`, `.where_not_in_custom()` methods for using `IN` operators.

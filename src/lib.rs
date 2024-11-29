@@ -183,6 +183,22 @@ impl QueryBuilder {
         })
     }
 
+    pub fn count(condition: &str, _as: Option<&str>) -> Self {
+        let query;
+
+        match _as {
+            Some(_as) => query = format!("SELECT COUNT({}) AS {} FROM", condition, _as),
+            None => query = format!("SELECT COUNT({}) FROM", condition)
+        };
+
+        return Self {
+            query,
+            table: "".to_string(),
+            qtype: QueryType::Count,
+            list: vec![]
+        }
+    }
+
     pub fn table(&mut self, table: &str) -> Self {
         match self.qtype {
             QueryType::Select => {
@@ -203,6 +219,10 @@ impl QueryBuilder {
                 self.query = format!("{} {}", self.query, table);
                 self.table = table.to_string()
             },
+            QueryType::Count => {
+                self.query = format!("{} {}", self.query, table);
+                self.table = table.to_string()
+            }
             QueryType::Null => panic!("You cannot add a table before you start a query"),
             QueryType::Create => panic!("You cannot use create keyword with a QueryBuilder instance")
         }
@@ -1193,12 +1213,14 @@ impl TableBuilder {
 
 #[derive(Debug, Clone)]
 pub enum KeywordList {
-    Select, Update, Delete, Insert, Table, Where, Or, And, Set, Finish, OrderBy, Like, Limit, Offset, IfNotExist, Create, Use 
+    Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
+    Finish, OrderBy, Like, Limit, Offset, IfNotExist, Create, Use, In, 
+    NotIn 
 }
 
 #[derive(Debug, Clone)]
 pub enum QueryType {
-    Select, Update, Delete, Insert, Null, Create
+    Select, Update, Delete, Insert, Null, Create, Count
 }
 
 #[derive(Debug, Clone)]
@@ -1391,5 +1413,16 @@ mod test {
         let test_where_not_in_custom = QueryBuilder::select(columns).unwrap().table("users").where_not_in_custom("id", "1, 12, 8").finish();
 
         assert_eq!(test_where_not_in_custom, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);")
+    }
+
+    #[test]
+    pub fn test_count() {
+        let count_of_users = QueryBuilder::count("*", None).table("users").where_cond("age", ">", ("25", ValueType::Integer)).finish();
+
+        assert_eq!(count_of_users, "SELECT COUNT(*) FROM users WHERE age > 25;".to_string());
+
+        let count_of_users_as_length = QueryBuilder::count("*", Some("length")).table("users").finish();
+
+        assert_eq!(count_of_users_as_length, "SELECT COUNT(*) AS length FROM users;".to_string());
     }
 }
