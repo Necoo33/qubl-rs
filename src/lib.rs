@@ -1,3 +1,4 @@
+/// Struct that benefits to build queries for interactions with rdbms's. The `list` field is experimental and currently does nothing in code but we'll planning to implement it for making QueryBuilder more robust and solving synthax errors in methods.
 #[derive(Debug, Clone)]
 pub struct QueryBuilder {
     pub query: String,
@@ -7,6 +8,7 @@ pub struct QueryBuilder {
 }
 
 impl QueryBuilder {
+    /// Select constructor. Use it if you want to build a Select Query.
     pub fn select(fields: Vec<&str>) -> std::result::Result<Self, std::io::Error> {
         match QueryBuilder::sanitize(fields.clone()) {
             Ok(_) => {
@@ -48,6 +50,7 @@ impl QueryBuilder {
         }
     }
 
+    /// Delete constructor. Use it if you want to build a Delete Query.
     pub fn delete() -> std::result::Result<Self, std::io::Error> {
         return Ok(QueryBuilder {
             query: "DELETE FROM".to_string(),
@@ -57,6 +60,7 @@ impl QueryBuilder {
         })
     }
 
+    /// Update constructor. Use it if you want to build a Update Query.
     pub fn update() -> std::result::Result<Self, std::io::Error> {
         return Ok(QueryBuilder {
             query: "UPDATE".to_string(),
@@ -66,6 +70,7 @@ impl QueryBuilder {
         })
     }
 
+    /// Insert constructor. Use it if you want to build a Insert Query.
     pub fn insert(columns: Vec<&str>, values: Vec<(&str, ValueType)>) -> std::result::Result<Self, std::io::Error> {
         let mut query = "INSERT INTO".to_string();
 
@@ -183,6 +188,7 @@ impl QueryBuilder {
         })
     }
 
+    /// Count constructor. Use it if you want to learn to length of a table.
     pub fn count(condition: &str, _as: Option<&str>) -> Self {
         let query;
 
@@ -199,7 +205,8 @@ impl QueryBuilder {
         }
     }
 
-    pub fn table(&mut self, table: &str) -> Self {
+    /// define the table. It should came after the constructors.
+    pub fn table(&mut self, table: &str) -> &mut Self {
         match self.qtype {
             QueryType::Select => {
                 self.query = format!("{} {}", self.query, table);
@@ -229,15 +236,17 @@ impl QueryBuilder {
 
         self.list.push(KeywordList::Table);
 
-        Self {
+        /*Self {
             query: self.query.clone(),
             table: self.table.clone(),
             qtype: self.qtype.clone(),
             list: self.list.clone()
-        }
+        }*/
+        self
     }
 
-    pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> Self {
+    /// add the "WHERE" keyword.
+    pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -271,28 +280,21 @@ impl QueryBuilder {
                 }
 
                 self.list.push(KeywordList::Where);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             },
             Err(error) => {
                 println!("An Error Occured when executing where method: {}", error);
 
                 self.list.push(KeywordList::Where);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             }
         }
     }
 
-    pub fn where_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> Self {
+    /// It adds the "IN" keyword with it's synthax. Don't use ".where_cond()" method if you use it.
+    pub fn where_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> &mut Self {
         self.query = format!("{} WHERE {} IN (", self.query, column);
 
         let length_of_ins = ins.len();
@@ -337,15 +339,11 @@ impl QueryBuilder {
             }
         }
 
-        return Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn where_not_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> Self {
+    /// It adds the "NOT IN" keyword with it's synthax. Don't use ".where_cond()" method if you use it.
+    pub fn where_not_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> &mut Self {
         self.query = format!("{} WHERE {} NOT IN (", self.query, column);
 
         let length_of_ins = ins.len();
@@ -390,37 +388,25 @@ impl QueryBuilder {
             }
         }
 
-        return Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn where_in_custom(&mut self, column: &str, query: &str) -> Self {
+    /// It adds the "IN" keyword with it's synthax and an empty condition, use it if you want to give more complex condition to "IN" keyword. Don't use ".where_cond()" with it.
+    pub fn where_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
 
-        return Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn where_not_in_custom(&mut self, column: &str, query: &str) -> Self {
+    /// It adds the "NOT IN" keyword with it's synthax and an empty condition, use it if you want to give more complex condition to "NOT IN" keyword. Don't use ".where_cond()" with it.
+    pub fn where_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} NOT IN ({})", self.query, column, query);
 
-        return Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> Self {
+    /// It adds the "OR" keyword with it's synthax. Warning: It's not ready yet to chaining "AND" and "OR" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
+    pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -447,28 +433,20 @@ impl QueryBuilder {
 
                 self.list.push(KeywordList::Or);
 
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+                self
             },
             Err(error) => {
                 println!("An Error Occured when executing or method: {}", error);
 
                 self.list.push(KeywordList::Or);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             }
         }
     }
 
-    pub fn set(&mut self, column: &str, value: (&str, ValueType)) -> Self {
+    /// It adds the "SET" keyword with it's synthax.
+    pub fn set(&mut self, column: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -552,28 +530,21 @@ impl QueryBuilder {
                 }
 
                 self.list.push(KeywordList::Set);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             },
             Err(error) => {
                 println!("An Error Occured when executing or method: {}", error);
 
                 self.list.push(KeywordList::Set);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             }
         }
     }
 
-    pub fn and(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> Self {
+    /// It adds the "AND" keyword with it's synthax. Warning: It's not ready yet to chaining "OR" and "AND" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
+    pub fn and(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -599,52 +570,39 @@ impl QueryBuilder {
                 }
 
                 self.list.push(KeywordList::And);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             },
             Err(error) => {
                 println!("An Error Occured when executing and method: {}", error);
 
                 self.list.push(KeywordList::And);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             }
         }
     }
 
-    pub fn offset(&mut self, offset: i32) -> Self {
+    /// It adds the "OFFSET" keyword with it's synthax. Be careful about it's alignment with "LIMIT" keyword.
+    pub fn offset(&mut self, offset: i32) -> &mut Self {
         self.query = format!("{} OFFSET {}", self.query, offset);
 
         self.list.push(KeywordList::Offset);
-        Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+
+        self
     }
 
-    pub fn limit(&mut self, limit: i32) -> Self {
+    /// It adds the "LIMIT" keyword with it's synthax.
+    pub fn limit(&mut self, limit: i32) -> &mut Self {
         self.query = format!("{} LIMIT {}", self.query, limit);
 
         self.list.push(KeywordList::Limit);
-        Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+
+        self
     }
 
-    pub fn like(&mut self, columns: Vec<&str>, operand: &str) -> Self {
+    /// It adds the "LIKE" keyword with it's synthax.
+    pub fn like(&mut self, columns: Vec<&str>, operand: &str) -> &mut Self {
         match QueryBuilder::sanitize(columns.clone()) {
             Ok(_) => {
                 match QueryBuilder::sanitize(vec![operand]){
@@ -653,12 +611,8 @@ impl QueryBuilder {
                         println!("That Error Occured in like method: {}", error);
         
                         self.list.push(KeywordList::Like);
-                        return Self {
-                            query: self.query.clone(),
-                            table: self.table.clone(),
-                            qtype: self.qtype.clone(),
-                            list: self.list.clone()
-                        }
+
+                        return self
                     }
                 }
 
@@ -671,28 +625,21 @@ impl QueryBuilder {
                 }
 
                 self.list.push(KeywordList::Like);
-                Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             },
             Err(error) => {
                 println!("That Error Occured in like method: {}", error);
 
                 self.list.push(KeywordList::Like);
-                Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                self
             }
         }
     }
 
-    pub fn order_by(&mut self, column: &str, mut ordering: &str) -> Self {
+    /// It adds the "ORDER BY" keyword with it's synthax. It only accepts "ASC", "DESC", "asc", "desc" values.
+    pub fn order_by(&mut self, column: &str, mut ordering: &str) -> &mut Self {
         if self.query.contains("ORDER BY") {
             panic!("Error in order_by method: you cannot add ordering option twice on a query.");
         }
@@ -703,12 +650,8 @@ impl QueryBuilder {
                 println!("{}", error);
 
                 self.list.push(KeywordList::OrderBy);
-                return Self {
-                    query: self.query.clone(),
-                    table: self.table.clone(),
-                    qtype: self.qtype.clone(),
-                    list: self.list.clone()
-                }
+
+                return self
             }
         }
 
@@ -722,46 +665,35 @@ impl QueryBuilder {
 
         self.query = format!("{} ORDER BY {} {}", self.query, column, ordering);
         self.list.push(KeywordList::OrderBy);
-        Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+
+        self
     }
 
-    pub fn order_random(&mut self) -> Self {
+    /// A practical method that adds a query for shuffling the lines.
+    pub fn order_random(&mut self) -> &mut Self {
         if self.query.contains("ORDER BY") {
             panic!("Error in order_random method: you cannot add ordering option twice on a query.");
         }
 
         self.query = format!("{} ORDER BY RAND()", self.query);
         self.list.push(KeywordList::OrderBy);
-        Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }
+
+        self
     }
 
-    pub fn append_custom(&mut self, query: &str) -> Self {
+    /// A wildcard method that gives you the chance to write a part of your query.
+    pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
 
-        Self { 
-            query: self.query.clone(), 
-            table: self.table.clone(), 
-            qtype: self.qtype.clone(), 
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn finish(&mut self) -> String {
-        self.list.push(KeywordList::Finish);
-
+    /// finishes the query and returns the result as string.
+    pub fn finish(&self) -> String {
         return format!("{};", self.query);
     }
 
+    /// checks the inputs for potential sql injection patterns and throws error if they exist.
     fn sanitize(fields: Vec<&str>) -> std::result::Result<String, std::io::Error> {
         if fields.len() == 1 && fields[0] == "" {
             return Ok("".to_string());
@@ -868,7 +800,7 @@ impl SchemaBuilder {
         })
     }
 
-    pub fn if_not_exists(&mut self) -> Self {
+    pub fn if_not_exists(&mut self) -> &mut Self {
         match self.list[0] {
             KeywordList::Create => (),
             KeywordList::Table => (),
@@ -879,14 +811,10 @@ impl SchemaBuilder {
         self.query = format!("{} DATABASE IF NOT EXISTS {}", split_the_query[0], split_the_query[1]);
 
         self.list.insert(0, KeywordList::IfNotExist);
-        Self {
-            query: self.query.clone(),
-            schema: self.schema.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
-    pub fn use_schema(&mut self, name: Option<&str>) -> Self {
+    pub fn use_schema(&mut self, name: Option<&str>) -> &mut Self {
         match name {
             Some(schema_name) => {
                 self.query = format!("USE {}", schema_name)
@@ -896,11 +824,7 @@ impl SchemaBuilder {
             }
         }
 
-        Self {
-            query: self.query.clone(),
-            schema: self.schema.clone(),
-            list: self.list.clone()
-        }
+        self
     }
 
     pub fn finish(&self) -> String {
@@ -1315,7 +1239,7 @@ mod test {
     pub fn test_select_query_imperative(){
         let mut select = QueryBuilder::select(["*"].to_vec()).unwrap();
 
-        let mut select_query = select.table("blogs");
+        let select_query = select.table("blogs");
         select_query.where_cond("id", "=", ("5", ValueType::Integer));
         select_query.or("id", "=", ("25", ValueType::Integer));
 

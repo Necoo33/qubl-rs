@@ -1,12 +1,18 @@
 # Changelog
 
+## v1.0.0
+
+- Made performance improvements by removing unnecessary copyings on `QueryBuilder` and `SchemaBuilder`.
+- Project become stabilized. It continue to take more updates but it doesn't take a major one unless a breaking change happens on the synthax for very long time.
+- Added proper documentation for `QueryBuilder` struct.
+
 ## v0.9.0
 
 - Added `count()` constructor to `QueryBuilder` struct for creating count queries and added `Count` variant to `QueryType` and `KeywordList` enums. Also added `In` and `NotIn` variants to `KeywordList` enum.
 
 ## v0.8.0
 
-- Added `.where_in()`, `.where_not_in()`, `.where_in_custom()`, `.where_not_in_custom()` methods for using `IN` operators.
+- Added `.where_in()`, `.where_not_in()`, `.where_in_custom()`, `.where_not_in_custom()` methods for using `IN` and `NOT IN` operators.
 
 ## v0.7.0
 

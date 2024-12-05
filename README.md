@@ -8,6 +8,10 @@ It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`,
 
 It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`.
 
+## Current Status
+
+This project has reached it's first major release, it never take a breaking change for a long time unless there is a breaking api change on rust standart liblary.
+
 ## Examples
 
 ### Initialize a query
