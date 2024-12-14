@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1
+
+- added proper documentation for most of the types. This release is just a documentation fix release.
+
 ## v1.1.0
 
 - added `.json_extract()` method to the `QueryBuilder` struct, which provides you tou use "JSON_EXTRACT()" mysql function later than various keywords. Added many test cases to the tests.

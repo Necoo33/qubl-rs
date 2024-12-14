@@ -2,21 +2,23 @@
 
  Low level And flexible query builder that gives you full control of your queries, it's created for especially mysql but probably it's compatible for postgresql with many ways as well. It also includes sanitization for both column and value inputs.
 
-That builder enforces you to start your sql query from ground up and build it both imperative and declaratively, however you need.
+That builder enforces you to start your sql query from ground up and build it both imperative and declaratively, however you need, without giving up from flexibility.
 
 It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`, `UPDATE`, `COUNT`.
 
-It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`.
+It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`.
+
+And it supports the json functions for now: `JSON_EXTRACT()`
 
 ## Current Status
 
-This project has reached it's first major release, it never take a breaking change for a long time unless there is a breaking api change on rust standart liblary.
+This project has reached it's first major release, it never take a breaking change for a long time unless there is a breaking api change on rust standart liblary. In that release branch, we'll focused to add JSON functions mostly.
 
 ## Examples
 
 ### Initialize a query
 
-For initializing a query, each query type has it's own constructor function. For example, if you want to start a select query, you have to initialize it with corresponding constructor function, such as: `select()`, `delete()`, `update()`, `insert()`
+For initializing a query, each query type has it's own constructor function. For example, if you want to start a select query, you have to initialize it with corresponding constructor function, such as: `select()`, `delete()`, `update()`, `insert()`, `count()`
 
 ```rust
 

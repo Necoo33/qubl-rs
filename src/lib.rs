@@ -1,4 +1,4 @@
-/// Struct that benefits to build queries for interactions with rdbms's. The `list` field is experimental and currently does nothing in code but we'll planning to implement it for making QueryBuilder more robust and solving synthax errors in methods.
+/// Struct that benefits to build queries for interactions with rdbms's.
 #[derive(Debug, Clone)]
 pub struct QueryBuilder {
     pub query: String,
@@ -7,6 +7,7 @@ pub struct QueryBuilder {
     pub list: Vec<KeywordList>
 }
 
+/// Implementations For QueryBuilder.
 impl QueryBuilder {
     /// Select constructor. Use it if you want to build a Select Query.
     pub fn select(fields: Vec<&str>) -> std::result::Result<Self, std::io::Error> {
@@ -239,7 +240,7 @@ impl QueryBuilder {
         self
     }
 
-    /// add the "WHERE" keyword.
+    /// add the "WHERE" keyword with it's synthax.
     pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
@@ -963,6 +964,7 @@ impl QueryBuilder {
     }
 }
 
+/// Struct that benefits you to create and use schema's.
 #[derive(Debug, Clone)]
 pub struct SchemaBuilder {
     pub query: String,
@@ -970,6 +972,7 @@ pub struct SchemaBuilder {
     pub list: Vec<KeywordList>
 }
 
+/// implementations fon SchemaBuilder
 impl SchemaBuilder {
     pub fn create(name: &str) -> std::result::Result<Self, std::io::Error> {
         if name.contains("!") ||
@@ -1061,6 +1064,7 @@ impl SchemaBuilder {
     }
 }
 
+/// Struct that benefits you to create Tables. Currently incomplete thoug.
 #[derive(Debug, Clone)]
 pub struct TableBuilder {
     pub query: String,
@@ -1069,6 +1073,7 @@ pub struct TableBuilder {
     pub all: Vec<String>,
 }
 
+/// Struct that benefits to define a foreign key.
 #[derive(Debug, Clone)]
 pub struct ForeignKey {
     pub first: ForeignKeyItem,
@@ -1078,12 +1083,14 @@ pub struct ForeignKey {
     pub constraint: Option<String>
 }
 
+/// Struct that benefits you to add a foreign key item to a foreign key.
 #[derive(Debug, Clone)]
 pub struct ForeignKeyItem {
     pub table: String,
     pub column: String
 }
 
+/// implementations for TableBuilder
 impl TableBuilder {
     pub fn create(schema_name: &str, table_name: &str) -> Self {
         return Self {
@@ -1364,6 +1371,7 @@ impl TableBuilder {
     }
 }
 
+/// KeywordList enum. It helps to syntactically correcting the queries. 
 #[derive(Debug, Clone)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
@@ -1371,16 +1379,19 @@ pub enum KeywordList {
     NotIn, JsonExtract,
 }
 
+/// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
 #[derive(Debug, Clone)]
 pub enum QueryType {
     Select, Update, Delete, Insert, Null, Create, Count
 }
 
+/// ValueType enum. It benefits to detect and format the value with optimized way when you have to work with exact column values. 
 #[derive(Debug, Clone)]
 pub enum ValueType {
     String, Boolean, Integer, Float, Time 
 }
 
+/// Enum that benefits you to define what you want with a foreign key.
 #[derive(Debug, Clone)]
 pub enum ForeignKeyActions {
     Cascade, Restrict, SetNull, NoAction, SetDefault
