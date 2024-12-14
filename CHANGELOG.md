@@ -5,6 +5,9 @@
 - added `.json_extract()` method to the `QueryBuilder` struct, which provides you tou use "JSON_EXTRACT()" mysql function later than various keywords. Added many test cases to the tests.
 - added support for `GROUP BY` keyword with `.group_by()` method.
 - The algorithm of `.order_by()` method slightly changed, it does not affect your existing codes though.
+- The actual usage of `KeywordList` enums are started with that release. Added `GroupBy` variant to it.
+- Now all methods add proper keywords for their last added query types to the `list` field.
+- added `.append_keyword()` method. Since we started to use `KeywordList` enum to build queries correctly, you should append equivalent keyword with the string that you appended to original query with `.append_custom()` method. Otherwise you should continue to build your entire query with `.append_custom()` method, because you could easily encounter syntactic bugs.
 
 ## v1.0.0
 

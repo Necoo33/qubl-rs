@@ -339,6 +339,7 @@ impl QueryBuilder {
             }
         }
 
+        self.list.push(KeywordList::In);
         self
     }
 
@@ -388,6 +389,7 @@ impl QueryBuilder {
             }
         }
 
+        self.list.push(KeywordList::NotIn);
         self
     }
 
@@ -395,12 +397,15 @@ impl QueryBuilder {
     pub fn where_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
 
+        self.list.push(KeywordList::In);
         self
     }
 
     /// It adds the "NOT IN" keyword with it's synthax and an empty condition, use it if you want to give more complex condition to "NOT IN" keyword. Don't use ".where_cond()" with it.
     pub fn where_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} NOT IN ({})", self.query, column, query);
+
+        self.list.push(KeywordList::NotIn);
 
         self
     }
@@ -685,16 +690,26 @@ impl QueryBuilder {
     pub fn group_by(&mut self, column: &str) -> &mut Self {
         self.query = format!("{} GROUP BY {}", self.query, column);
 
+        self.list.push(KeywordList::GroupBy);
+
         self
     }
 
-    /// A wildcard method that gives you the chance to write a part of your query.
+    /// A wildcard method that gives you the chance to write a part of your query. Warning, it does not add any keyword to builder, i'll encourage to add proper keyword to it with `.append_keyword()` method for your custom query, otherwise you should continue building your query by yourself with that function, or you've to be prepared to encounter bugs.  
     pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
 
         self
     }
 
+    /// A wildcard method that benefits you to append a keyword to the keyword list, so the QueryBuilder can build your queries properly, later than you appended your custom string to your query. It should be used with `.append_custom()` method. 
+    pub fn append_keyword(&mut self, keyword: KeywordList) -> &mut Self {
+        self.list.push(keyword);
+
+        self
+    }
+    
+    /// It applies "JSON_EXTRACT()" mysql function with it's Synthax. If you encounter any syntactic bugs or deficiencies about that function, please report it via opening an issue.
     pub fn json_extract(&mut self, column: &str, field: &str, _as: Option<&str>) -> &mut Self {
         match self.list.last() {
             Some(keyword) => {
@@ -1352,7 +1367,7 @@ impl TableBuilder {
 #[derive(Debug, Clone)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
-    Finish, OrderBy, Like, Limit, Offset, IfNotExist, Create, Use, In, 
+    Finish, OrderBy, GroupBy, Like, Limit, Offset, IfNotExist, Create, Use, In, 
     NotIn, JsonExtract,
 }
 
