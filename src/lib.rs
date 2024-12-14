@@ -201,7 +201,7 @@ impl QueryBuilder {
             query,
             table: "".to_string(),
             qtype: QueryType::Count,
-            list: vec![]
+            list: vec![KeywordList::Count]
         }
     }
 
@@ -210,7 +210,7 @@ impl QueryBuilder {
         match self.qtype {
             QueryType::Select => {
                 self.query = format!("{} {}", self.query, table);
-                self.table = table.to_string()
+                self.table = table.to_string();
             },
             QueryType::Delete => {
                 self.query = format!("{} {}", self.query, table);
@@ -236,12 +236,6 @@ impl QueryBuilder {
 
         self.list.push(KeywordList::Table);
 
-        /*Self {
-            query: self.query.clone(),
-            table: self.table.clone(),
-            qtype: self.qtype.clone(),
-            list: self.list.clone()
-        }*/
         self
     }
 
@@ -268,6 +262,12 @@ impl QueryBuilder {
 
                         if value.0 == "false" || value.0 == "FALSE" {
                             self.query = format!("{} WHERE {} {} {}", self.query, column, mark, false);
+                        }
+
+                        if value.0 != "0" {
+                            self.query = format!("{} WHERE {} {} 1", self.query, column, mark);
+                        } else {
+                            self.query = format!("{} WHERE {} {} 0", self.query, column, mark);
                         }
                     },
                     ValueType::Time => { 
@@ -658,8 +658,8 @@ impl QueryBuilder {
         match ordering {
             "asc" => ordering = "ASC",
             "desc" => ordering = "DESC",
-            "ASC" => (),
-            "DESC" => (),
+            "ASC" => ordering = "ASC",
+            "DESC" => ordering = "DESC",
             &_ => panic!("Panicking in order_by method: There is no other ordering options than ASC or DESC.")
         }
 
@@ -681,10 +681,224 @@ impl QueryBuilder {
         self
     }
 
+    /// It adds the "GROUP BY" keyword with it's Synthax.
+    pub fn group_by(&mut self, column: &str) -> &mut Self {
+        self.query = format!("{} GROUP BY {}", self.query, column);
+
+        self
+    }
+
     /// A wildcard method that gives you the chance to write a part of your query.
     pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
 
+        self
+    }
+
+    pub fn json_extract(&mut self, column: &str, field: &str, _as: Option<&str>) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => {
+                match keyword {
+                    KeywordList::Where => {
+                        if _as.is_some() {
+                            println!("Warning: You've gave _as value to some variant and used it later than 'WHERE' keyword on .json_extract() method. In that usage, that value has no effect, you should gave it none value.");
+                        }
+
+                        match self.query.contains(column) {
+                            false => panic!("Your query should include the same column name with column parameter if you use '.json_extract()' method later than '.where_cond()' method."),
+                            true => ()
+                        }
+
+                        match self.table.as_str() == column {
+                            true => {
+                                let mut split_the_query = self.query.split(column);
+                                let string_for_replace = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                self.query = format!("SELECT{}{}{}", self.table, string_for_replace, split_the_query.nth(2).unwrap()) 
+                            },
+                            false => {
+                                let string_for_replace = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                self.query = self.query.replace(column,&string_for_replace)
+                            }
+                        }
+                    },
+                    KeywordList::And => {
+                        if _as.is_some() {
+                            println!("Warning: You've gave _as value to some variant and used it later than 'AND' keyword on .json_extract() method. In that usage, that value has no effect, you should gave it none value.");
+                        }
+
+                        let query_to_comp = format!("AND {}", column);
+
+                        match self.query.contains(&query_to_comp) {
+                            false => panic!("Your query should include the same column name with column parameter if you use '.json_extract()' method later than '.and()' method."),
+                            true => ()
+                        }
+
+                        match self.table.as_str() == column {
+                            true => {
+                                let mut split_the_query = self.query.split(&query_to_comp);
+                                let string_for_replace = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                self.query = format!("{}AND {}{}", split_the_query.nth(0).unwrap(), string_for_replace, split_the_query.nth(0).unwrap()) 
+                            },
+                            false => {
+                                match self.query.matches(&query_to_comp).count() {
+                                    0 => (),
+                                    1 => {
+                                        let string_for_replace = format!("AND JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                        self.query = self.query.replace(&query_to_comp,&string_for_replace)
+                                    }
+                                    _ => {
+                                        let split_the_query = self.query.split(&query_to_comp).collect::<Vec<&str>>();
+
+                                        let mut last_chunk = "".to_string();
+                                        let mut new_chunk = "".to_string();
+                                        let length_of_split = split_the_query.len();
+                                        
+                                        for (index, chunk) in split_the_query.into_iter().enumerate() {
+                                            if index + 1 == length_of_split {
+                                                last_chunk = chunk.to_string()
+                                            } else if index == 0 {
+                                                new_chunk = format!("{}", chunk);
+                                            } else {
+                                                new_chunk = format!("{}{}{}", new_chunk, query_to_comp, chunk)
+                                            }
+                                        }
+
+                                        let string_for_replace = format!("AND JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                        self.query = format!("{} {} {}", new_chunk, string_for_replace, last_chunk)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    KeywordList::Or => {
+                        if _as.is_some() {
+                            println!("Warning: You've gave _as value to some variant and used it later than 'OR' keyword on .json_extract() method. In that usage, that value has no effect, you should gave it none value.");
+                        }
+
+                        let query_to_comp = format!("OR {}", column);
+
+                        match self.query.contains(&query_to_comp) {
+                            false => panic!("Your query should include the same column name with column parameter if you use '.json_extract()' method later than '.or()' method."),
+                            true => ()
+                        }
+
+                        match self.table.as_str() == column {
+                            true => {
+                                let mut split_the_query = self.query.split(&query_to_comp);
+                                let string_for_replace = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                self.query = format!("{}OR {}{}", split_the_query.nth(0).unwrap(), string_for_replace, split_the_query.nth(0).unwrap()) 
+                            },
+                            false => {
+                                match self.query.matches(&query_to_comp).count() {
+                                    0 => (),
+                                    1 => {
+                                        let string_for_replace = format!("OR JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                        self.query = self.query.replace(&query_to_comp,&string_for_replace)
+                                    }
+                                    _ => {
+                                        let split_the_query = self.query.split(&query_to_comp).collect::<Vec<&str>>();
+
+                                        let mut last_chunk = "".to_string();
+                                        let mut new_chunk = "".to_string();
+                                        let length_of_split = split_the_query.len();
+                                        
+                                        for (index, chunk) in split_the_query.into_iter().enumerate() {
+                                            if index + 1 == length_of_split {
+                                                last_chunk = chunk.to_string()
+                                            } else if index == 0 {
+                                                new_chunk = format!("{}", chunk);
+                                            } else {
+                                                new_chunk = format!("{}{}{}", new_chunk, query_to_comp, chunk)
+                                            }
+                                        }
+
+                                        let string_for_replace = format!("OR JSON_EXTRACT({}, '$.{}')", column, field);
+
+                                        self.query = format!("{} {} {}", new_chunk, string_for_replace, last_chunk)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    KeywordList::Select => {
+                        let string_for_put = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                        match _as {
+                            Some(_as) => self.query = format!("SELECT {} AS {} FROM", string_for_put, _as),
+                            None => self.query = format!("SELECT {} FROM", string_for_put),
+                        }
+                    },
+                    KeywordList::Table => {
+                        let string_for_put = format!("JSON_EXTRACT({}, '$.{}')", column, field);
+
+                        match _as {
+                            Some(_as) => self.query = format!("SELECT {} AS {} FROM {}", string_for_put, _as, self.table),
+                            None => self.query = format!("SELECT {} FROM {}", string_for_put, self.table),
+                        }
+                    },
+                    KeywordList::OrderBy => {
+                        if _as.is_some() {
+                            println!("Warning: You've gave _as value to some variant and used it later than 'ORDER BY' operator on .json_extract() method. In that usage, that value has no effect, you should gave it none value.");
+                        }
+
+                        match self.query.contains(&column) {
+                            false => panic!("Your query should include the same column name with column parameter if you use '.json_extract()' method later than '.order_by()' method."),
+                            true => ()
+                        }
+
+                        match self.query.matches(" ORDER BY ").count() {
+                            0 => (),
+                            1 => {
+                                let split_the_query = self.query.clone();
+                                let mut split_the_query = split_the_query.split(" ORDER BY ");
+
+                                let string_for_put = format!("ORDER BY JSON_EXTRACT({}, '$.{}')", column, field);
+        
+                                match _as {
+                                    Some(_as) => self.query = format!("{} {} AS {}", split_the_query.nth(0).unwrap(), string_for_put, _as),
+                                    None => self.query = format!("{} {}", split_the_query.nth(0).unwrap(), string_for_put)
+                                }
+
+                                match split_the_query.nth(0) {
+                                    Some(comparison) => {
+                                        match comparison.ends_with("ASC") || comparison.ends_with("asc") {
+                                            true => self.query = format!("{} ASC", self.query),
+                                            false => match comparison.ends_with("DESC") || comparison.ends_with("desc") {
+                                                true => self.query = format!("{} DESC", self.query),
+                                                false => ()
+                                            }
+                                        }
+                                    },
+                                    None => ()
+                                }
+                            },
+                            _ => ()
+                        }
+                    },
+                    KeywordList::Count => {
+                        let mut split_the_query = self.query.split(" COUNT");
+
+                        let string_for_put = match _as {
+                            Some(_as) => format!("JSON_EXTRACT({}, '$.{}') AS {}", column, field, _as),
+                            None => format!("JSON_EXTRACT({}, '$.{}')", column, field)
+                        };
+
+                        self.query = format!("SELECT {}, COUNT{}", string_for_put, split_the_query.nth(1).unwrap())
+                    },
+                    _ => ()
+                }
+            },
+            None => ()
+        }
+        
+        self.list.push(KeywordList::JsonExtract);
         self
     }
 
@@ -1139,7 +1353,7 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn 
+    NotIn, JsonExtract,
 }
 
 #[derive(Debug, Clone)]
@@ -1348,5 +1562,74 @@ mod test {
         let count_of_users_as_length = QueryBuilder::count("*", Some("length")).table("users").finish();
 
         assert_eq!(count_of_users_as_length, "SELECT COUNT(*) AS length FROM users;".to_string());
+    }
+
+    #[test]
+    pub fn test_json_extract(){
+        // tests with "select()" constructor
+
+        let select_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().json_extract("data", "age", Some("student_age")).table("students").finish();
+
+        assert_eq!(select_query_1, "SELECT JSON_EXTRACT(data, '$.age') AS student_age FROM students;".to_string());
+        
+        let select_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().json_extract("data", "age", Some("student_age")).table("students").where_cond("successfull", "=", ("1", ValueType::Boolean)).finish();
+
+        assert_eq!(select_query_2, "SELECT JSON_EXTRACT(data, '$.age') AS student_age FROM students WHERE successfull = 1;".to_string());
+        
+        let select_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().json_extract("data", "age", Some("student_age")).table("students").where_cond("points", ">", ("85", ValueType::Integer)).json_extract("points", "name", None).finish();
+
+        assert_eq!(select_query_3, "SELECT JSON_EXTRACT(data, '$.age') AS student_age FROM students WHERE JSON_EXTRACT(points, '$.name') > 85;".to_string());
+
+        // tests with ".where_cond()" method
+
+        let with_where = QueryBuilder::delete().unwrap().table("users").where_cond("id", ">", ("200", ValueType::Integer)).json_extract("id", "user_id", None).finish();
+
+        assert_eq!(with_where, "DELETE FROM users WHERE JSON_EXTRACT(id, '$.user_id') > 200;".to_string());
+
+        // tests with ".table()" method
+        
+        let fields = ["name", "age"].to_vec();
+        
+        let with_table = QueryBuilder::select(fields).unwrap().table("users").json_extract("id", "user_id", None).finish();
+
+        assert_eq!(with_table, "SELECT JSON_EXTRACT(id, '$.user_id') FROM users;".to_string());
+
+        // tests with ".and()" method
+
+        let fields = ["name", "age"].to_vec();
+
+        let with_and_1 = QueryBuilder::select(fields).unwrap().table("height").where_cond("weight", ">", ("60", ValueType::Integer)).and("height", ">", ("1.70", ValueType::Float)).json_extract("height", "student_height", None).finish();
+
+        assert_eq!(with_and_1, "SELECT name, age FROM height WHERE weight > 60 AND JSON_EXTRACT(height, '$.student_height') > 1.70;".to_string());
+    
+        let with_and_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("students").where_cond("weight", ">", ("60", ValueType::Integer)).and("height", ">", ("1.70", ValueType::Float)).json_extract("height", "student_height", None).finish();
+
+        assert_eq!(with_and_2, "SELECT * FROM students WHERE weight > 60 AND JSON_EXTRACT(height, '$.student_height') > 1.70;".to_string());
+
+        // tests with ".or()" method
+
+        let fields = ["name", "age"].to_vec();
+
+        let with_or_1 = QueryBuilder::select(fields).unwrap().table("height").where_cond("weight", ">", ("60", ValueType::Integer)).or("height", ">", ("1.70", ValueType::Float)).json_extract("height", "student_height", None).finish();
+
+        assert_eq!(with_or_1, "SELECT name, age FROM height WHERE weight > 60 OR JSON_EXTRACT(height, '$.student_height') > 1.70;".to_string());
+    
+        let with_or_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("students").where_cond("weight", ">", ("60", ValueType::Integer)).or("height", ">", ("1.70", ValueType::Float)).json_extract("height", "student_height", None).finish();
+
+        assert_eq!(with_or_2, "SELECT * FROM students WHERE weight > 60 OR JSON_EXTRACT(height, '$.student_height') > 1.70;".to_string());
+
+        // tests with "count()" constructor
+
+        let count_query_1 = QueryBuilder::count("*", None).json_extract("age", "student_age", Some("value")).table("students").group_by("points").finish();
+
+        assert_eq!(count_query_1, "SELECT JSON_EXTRACT(age, '$.student_age') AS value, COUNT(*) FROM students GROUP BY points;".to_string());
+
+        // tests with ".order_by()" method
+        
+        let fields = ["title", "desc", "created_at", "updated_at", "keywords", "pics", "likes"].to_vec();
+
+        let order_by_query_1 = QueryBuilder::select(fields).unwrap().table("contents").where_cond("published", "=", ("1", ValueType::Boolean)).order_by("likes", "ASC").json_extract("likes", "name", None).finish();
+
+        assert_eq!(order_by_query_1, "SELECT title, desc, created_at, updated_at, keywords, pics, likes FROM contents WHERE published = 1 ORDER BY JSON_EXTRACT(likes, '$.name') ASC;".to_string());
     }
 }

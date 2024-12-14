@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0
+
+- added `.json_extract()` method to the `QueryBuilder` struct, which provides you tou use "JSON_EXTRACT()" mysql function later than various keywords. Added many test cases to the tests.
+- added support for `GROUP BY` keyword with `.group_by()` method.
+- The algorithm of `.order_by()` method slightly changed, it does not affect your existing codes though.
+
 ## v1.0.0
 
 - Made performance improvements by removing unnecessary copyings on `QueryBuilder` and `SchemaBuilder`.
