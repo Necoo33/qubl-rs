@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.0
+
+- `.json_extract()` and `.json_contains()` functions are modified and their algorithm improved. Before that update, we assume you want to work with a column that is a json object and pointing a key. With that update, you can choose whether you want to work with a json array or json object, by simply putting a dot in the beginning of that function(for example, if you want to put "name" on the needle, you just have to make it ".name") or just select the which nth of that array with it's synthax.
+
 ## v1.2.0
 
 - added `.json_contains()` method to the `QueryBuilder` struct, which provides you to use "JSON_CONTAINS()" mysql function later than various keywords. Added many test cases to the tests.
