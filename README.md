@@ -8,7 +8,7 @@ It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`,
 
 It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`.
 
-And it supports the json functions for now: `JSON_EXTRACT()`
+And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`
 
 ## Current Status
 

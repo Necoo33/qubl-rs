@@ -1,12 +1,17 @@
 # Changelog
 
+## v1.2.0
+
+- added `.json_contains()` method to the `QueryBuilder` struct, which provides you to use "JSON_CONTAINS()" mysql function later than various keywords. Added many test cases to the tests.
+- added support for `HAVING` keyword with `.having()` method.
+
 ## v1.1.1
 
 - added proper documentation for most of the types. This release is just a documentation fix release.
 
 ## v1.1.0
 
-- added `.json_extract()` method to the `QueryBuilder` struct, which provides you tou use "JSON_EXTRACT()" mysql function later than various keywords. Added many test cases to the tests.
+- added `.json_extract()` method to the `QueryBuilder` struct, which provides you to use "JSON_EXTRACT()" mysql function later than various keywords. Added many test cases to the tests.
 - added support for `GROUP BY` keyword with `.group_by()` method.
 - The algorithm of `.order_by()` method slightly changed, it does not affect your existing codes though.
 - The actual usage of `KeywordList` enums are started with that release. Added `GroupBy` variant to it.

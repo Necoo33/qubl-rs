@@ -696,6 +696,34 @@ impl QueryBuilder {
         self
     }
 
+    pub fn having(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
+        match value.1 {
+            ValueType::String => self.query = format!("{} HAVING {} {} '{}'", self.query, column, mark, value.0),
+            ValueType::Integer => self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value.0),
+            ValueType::Float => self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value.0),
+            ValueType::Boolean => {
+                if value.0 == "true" || value.0 == "TRUE" {
+                    self.query = format!("{} HAVING {} {} {}", self.query, column, mark, true);
+                }
+
+                if value.0 == "false" || value.0 == "FALSE" {
+                    self.query = format!("{} HAVING {} {} {}", self.query, column, mark, false);
+                }
+            },
+            ValueType::Time => {
+                if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
+                    self.query = format!("{} HAVING {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
+                } else {
+                    self.query = format!("{} HAVING {} {} '{}'", self.query, column, mark, value.0);
+                }  
+            }
+        }
+
+        self.list.push(KeywordList::Having);
+
+        self
+    }
+
     /// A wildcard method that gives you the chance to write a part of your query. Warning, it does not add any keyword to builder, i'll encourage to add proper keyword to it with `.append_keyword()` method for your custom query, otherwise you should continue building your query by yourself with that function, or you've to be prepared to encounter bugs.  
     pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
@@ -915,6 +943,269 @@ impl QueryBuilder {
         }
         
         self.list.push(KeywordList::JsonExtract);
+        self
+    }
+
+    /// It applies "JSON_CONTAINS()" mysql function with it's Synthax. If you encounter any syntactic bugs or deficiencies about that function, please report it via opening an issue.
+    pub fn json_contains(&mut self, column: &str, needle: (&str, ValueType), path: Option<&str>) -> &mut Self {
+        match self.list.last().unwrap() {
+            KeywordList::Select => match path {
+                Some(path) => match needle.1 {
+                    ValueType::String => self.query = format!("SELECT JSON_CONTAINS({}, '{}', '$.{}') FROM", column, needle.0, path),
+                    ValueType::Integer => self.query = format!("SELECT JSON_CONTAINS({}, {}, '$.{}') FROM", column, needle.0, path),
+                    ValueType::Float => self.query = format!("SELECT JSON_CONTAINS({}, {}, '$.{}') FROM", column, needle.0, path),
+                    ValueType::Boolean => match needle.0 {
+                        "true" => self.query = format!("SELECT JSON_CONTAINS({}, true, '$.{}') FROM", column, path),
+                        "false" => self.query = format!("SELECT JSON_CONTAINS({}, false, '$.{}') FROM", column, path),
+                        "0" => self.query = format!("SELECT JSON_CONTAINS({}, false, '$.{}') FROM", column, path),
+                        _ => self.query = format!("SELECT JSON_CONTAINS({}, true, '$.{}') FROM", column, path),
+                    },
+                    ValueType::Time => self.query = format!("SELECT JSON_CONTAINS({}, '{}', '$.{}') FROM", column, needle.0, path)
+                },
+                None => match needle.1 {
+                    ValueType::String => self.query = format!("SELECT JSON_CONTAINS({}, '{}') FROM", column, needle.0),
+                    ValueType::Integer => self.query = format!("SELECT JSON_CONTAINS({}, {}) FROM", column, needle.0),
+                    ValueType::Float => self.query = format!("SELECT JSON_CONTAINS({}, {}) FROM", column, needle.0),
+                    ValueType::Boolean => match needle.0 {
+                        "true" => self.query = format!("SELECT JSON_CONTAINS({}, true) FROM", column),
+                        "false" => self.query = format!("SELECT JSON_CONTAINS({}, false) FROM", column),
+                        "0" => self.query = format!("SELECT JSON_CONTAINS({}, false) FROM", column),
+                        _ => self.query = format!("SELECT JSON_CONTAINS({}, true) FROM", column),
+                    },
+                    ValueType::Time => self.query = format!("SELECT JSON_CONTAINS({}, '{}') FROM", column, needle.0)
+                }
+            },
+            KeywordList::Where => match path {
+                Some(path) => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle.1 {
+                        ValueType::String => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}', '$.{}')", first_half.unwrap(), column, needle.0, path),
+                        ValueType::Integer => self.query = format!("{} WHERE JSON_CONTAINS({}, {}, '$.{}')", first_half.unwrap(), column, needle.0, path),
+                        ValueType::Float => self.query = format!("{} WHERE JSON_CONTAINS({}, {}, '$.{}')", first_half.unwrap(), column, needle.0, path),
+                        ValueType::Boolean => match needle.0 {
+                            "true" => self.query = format!("{} WHERE JSON_CONTAINS({}, true, '$.{}')", first_half.unwrap(), column, path),
+                            "false" => self.query = format!("{} WHERE JSON_CONTAINS({}, false, '$.{}')", first_half.unwrap(), column, path),
+                            "0" => self.query = format!("{} WHERE JSON_CONTAINS({}, false, '$.{}')", first_half.unwrap(), column, path),
+                            _ => self.query = format!("{} WHERE JSON_CONTAINS({}, true, '$.{}')", first_half.unwrap(), column, path),
+                        }
+                        ValueType::Time => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}', '$.{}')", first_half.unwrap(), column, needle.0, path),
+                    }
+                },
+                None => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle.1 {
+                        ValueType::String => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle.0),
+                        ValueType::Integer => self.query = format!("{} WHERE JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle.0),
+                        ValueType::Float => self.query = format!("{} WHERE JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle.0),
+                        ValueType::Boolean => match needle.0 {
+                            "true" => self.query = format!("{} WHERE JSON_CONTAINS({}, true)", first_half.unwrap(), column),
+                            "false" => self.query = format!("{} WHERE JSON_CONTAINS({}, false)", first_half.unwrap(), column),
+                            "0" => self.query = format!("{} WHERE JSON_CONTAINS({}, false)", first_half.unwrap(), column),
+                            _ => self.query = format!("{} WHERE JSON_CONTAINS({}, true)", first_half.unwrap(), column),
+                        }
+                        ValueType::Time => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle.0),
+                    }
+                }
+            },
+            KeywordList::And => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle.1 {
+                            ValueType::String => self.query = format!("{} AND JSON_CONTAINS({}, '{}', '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Integer => self.query = format!("{} AND JSON_CONTAINS({}, {}, '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Float => self.query = format!("{} AND JSON_CONTAINS({}, {}, '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Boolean => match needle.0 {
+                                "true" => self.query = format!("{} AND JSON_CONTAINS({}, true, '$.{}')", split_the_query[0], column, path),
+                                "false" => self.query = format!("{} AND JSON_CONTAINS({}, false, '$.{}')", split_the_query[0], column, path),
+                                "0" => self.query = format!("{} AND JSON_CONTAINS({}, false, '$.{}')", split_the_query[0], column, path),
+                                _ => self.query = format!("{} AND JSON_CONTAINS({}, true, '$.{}')", split_the_query[0], column, path),
+                            }
+                            ValueType::Time => self.query = format!("{} AND JSON_CONTAINS({}, '{}', '$.{}')", split_the_query[0], column, needle.0, path),
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle.1 {
+                                ValueType::String => self.query = format!("{}AND JSON_CONTAINS({}, '{}', '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Integer => self.query = format!("{}AND JSON_CONTAINS({}, {}, '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Float => self.query = format!("{}AND JSON_CONTAINS({}, {}, '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Boolean => match needle.0 {
+                                    "true" => self.query = format!("{}AND JSON_CONTAINS({}, true, '$.{}')", concatenated_string, column, path),
+                                    "false" => self.query = format!("{}AND JSON_CONTAINS({}, false, '$.{}')", concatenated_string, column, path),
+                                    "0" => self.query = format!("{}AND JSON_CONTAINS({}, false, '$.{}')", concatenated_string, column, path),
+                                    _ => self.query = format!("{}AND JSON_CONTAINS({}, true, '$.{}')", concatenated_string, column, path),
+                                }
+                                ValueType::Time => self.query = format!("{}AND JSON_CONTAINS({}, '{}', '$.{}')", concatenated_string, column, needle.0, path),
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle.1 {
+                            ValueType::String => self.query = format!("{} AND JSON_CONTAINS({}, '{}')", split_the_query[0], column, needle.0),
+                            ValueType::Integer => self.query = format!("{} AND JSON_CONTAINS({}, {})",  split_the_query[0], column, needle.0),
+                            ValueType::Float => self.query = format!("{} AND JSON_CONTAINS({}, {})",  split_the_query[0], column, needle.0),
+                            ValueType::Boolean => match needle.0 {
+                                "true" => self.query = format!("{} AND JSON_CONTAINS({}, true)",  split_the_query[0], column),
+                                "false" => self.query = format!("{} AND JSON_CONTAINS({}, false)",  split_the_query[0], column),
+                                "0" => self.query = format!("{} AND JSON_CONTAINS({}, false)",  split_the_query[0], column),
+                                _ => self.query = format!("{} AND JSON_CONTAINS({}, true)",  split_the_query[0], column),
+                            }
+                            ValueType::Time => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle.0),
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle.1 {
+                                ValueType::String => self.query = format!("{}AND JSON_CONTAINS({}, '{}')", concatenated_string, column, needle.0),
+                                ValueType::Integer => self.query = format!("{}AND JSON_CONTAINS({}, {})", concatenated_string, column, needle.0),
+                                ValueType::Float => self.query = format!("{}AND JSON_CONTAINS({}, {})", concatenated_string, column, needle.0),
+                                ValueType::Boolean => match needle.0 {
+                                    "true" => self.query = format!("{}AND JSON_CONTAINS({}, true)", concatenated_string, column),
+                                    "false" => self.query = format!("{}AND JSON_CONTAINS({}, false)", concatenated_string, column),
+                                    "0" => self.query = format!("{}AND JSON_CONTAINS({}, false)", concatenated_string, column),
+                                    _ => self.query = format!("{}AND JSON_CONTAINS({}, true)", concatenated_string, column),
+                                }
+                                ValueType::Time => self.query = format!("{}AND JSON_CONTAINS({}, '{}')", concatenated_string, column, needle.0),
+                            }
+                        }
+                    }
+                }
+            },
+            KeywordList::Or => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle.1 {
+                            ValueType::String => self.query = format!("{} OR JSON_CONTAINS({}, '{}', '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Integer => self.query = format!("{} OR JSON_CONTAINS({}, {}, '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Float => self.query = format!("{} OR JSON_CONTAINS({}, {}, '$.{}')", split_the_query[0], column, needle.0, path),
+                            ValueType::Boolean => match needle.0 {
+                                "true" => self.query = format!("{} OR JSON_CONTAINS({}, true, '$.{}')", split_the_query[0], column, path),
+                                "false" => self.query = format!("{} OR JSON_CONTAINS({}, false, '$.{}')", split_the_query[0], column, path),
+                                "0" => self.query = format!("{} OR JSON_CONTAINS({}, false, '$.{}')", split_the_query[0], column, path),
+                                _ => self.query = format!("{} OR JSON_CONTAINS({}, true, '$.{}')", split_the_query[0], column, path),
+                            }
+                            ValueType::Time => self.query = format!("{} OR JSON_CONTAINS({}, '{}', '$.{}')", split_the_query[0], column, needle.0, path),
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle.1 {
+                                ValueType::String => self.query = format!("{}OR JSON_CONTAINS({}, '{}', '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Integer => self.query = format!("{}OR JSON_CONTAINS({}, {}, '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Float => self.query = format!("{}OR JSON_CONTAINS({}, {}, '$.{}')", concatenated_string, column, needle.0, path),
+                                ValueType::Boolean => match needle.0 {
+                                    "true" => self.query = format!("{}OR JSON_CONTAINS({}, true, '$.{}')", concatenated_string, column, path),
+                                    "false" => self.query = format!("{}OR JSON_CONTAINS({}, false, '$.{}')", concatenated_string, column, path),
+                                    "0" => self.query = format!("{}OR JSON_CONTAINS({}, false, '$.{}')", concatenated_string, column, path),
+                                    _ => self.query = format!("{}OR JSON_CONTAINS({}, true, '$.{}')", concatenated_string, column, path),
+                                }
+                                ValueType::Time => self.query = format!("{}OR JSON_CONTAINS({}, '{}', '$.{}')", concatenated_string, column, needle.0, path),
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle.1 {
+                            ValueType::String => self.query = format!("{} OR JSON_CONTAINS({}, '{}')", split_the_query[0], column, needle.0),
+                            ValueType::Integer => self.query = format!("{} OR JSON_CONTAINS({}, {})",  split_the_query[0], column, needle.0),
+                            ValueType::Float => self.query = format!("{} OR JSON_CONTAINS({}, {})",  split_the_query[0], column, needle.0),
+                            ValueType::Boolean => match needle.0 {
+                                "true" => self.query = format!("{} OR JSON_CONTAINS({}, true)",  split_the_query[0], column),
+                                "false" => self.query = format!("{} OR JSON_CONTAINS({}, false)",  split_the_query[0], column),
+                                "0" => self.query = format!("{} OR JSON_CONTAINS({}, false)",  split_the_query[0], column),
+                                _ => self.query = format!("{} OR JSON_CONTAINS({}, true)",  split_the_query[0], column),
+                            }
+                            ValueType::Time => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle.0),
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle.1 {
+                                ValueType::String => self.query = format!("{}OR JSON_CONTAINS({}, '{}')", concatenated_string, column, needle.0),
+                                ValueType::Integer => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle.0),
+                                ValueType::Float => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle.0),
+                                ValueType::Boolean => match needle.0 {
+                                    "true" => self.query = format!("{}OR JSON_CONTAINS({}, true)", concatenated_string, column),
+                                    "false" => self.query = format!("{}OR JSON_CONTAINS({}, false)", concatenated_string, column),
+                                    "0" => self.query = format!("{}OR JSON_CONTAINS({}, false)", concatenated_string, column),
+                                    _ => self.query = format!("{}OR JSON_CONTAINS({}, true)", concatenated_string, column),
+                                }
+                                ValueType::Time => self.query = format!("{}OR JSON_CONTAINS({}, '{}')", concatenated_string, column, needle.0),
+                            }
+                        }
+                    }
+                }
+            },
+            _ => panic!("Wrong usage of '.json_contains()' method, it should be used later than either SELECT, WHERE, AND, OR keywords.")
+        }
+
+        self.list.push(KeywordList::JsonContains);
+
         self
     }
 
@@ -1375,8 +1666,8 @@ impl TableBuilder {
 #[derive(Debug, Clone)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
-    Finish, OrderBy, GroupBy, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract,
+    Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
+    NotIn, JsonExtract, JsonContains
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -1646,9 +1937,9 @@ mod test {
 
         // tests with "count()" constructor
 
-        let count_query_1 = QueryBuilder::count("*", None).json_extract("age", "student_age", Some("value")).table("students").group_by("points").finish();
+        let count_query_1 = QueryBuilder::count("*", None).json_extract("age", "student_age", Some("value")).table("students").group_by("points").having("points", ">", ("75", ValueType::Integer)).finish();
 
-        assert_eq!(count_query_1, "SELECT JSON_EXTRACT(age, '$.student_age') AS value, COUNT(*) FROM students GROUP BY points;".to_string());
+        assert_eq!(count_query_1, "SELECT JSON_EXTRACT(age, '$.student_age') AS value, COUNT(*) FROM students GROUP BY points HAVING points > 75;".to_string());
 
         // tests with ".order_by()" method
         
@@ -1657,5 +1948,65 @@ mod test {
         let order_by_query_1 = QueryBuilder::select(fields).unwrap().table("contents").where_cond("published", "=", ("1", ValueType::Boolean)).order_by("likes", "ASC").json_extract("likes", "name", None).finish();
 
         assert_eq!(order_by_query_1, "SELECT title, desc, created_at, updated_at, keywords, pics, likes FROM contents WHERE published = 1 ORDER BY JSON_EXTRACT(likes, '$.name') ASC;".to_string());
+    }
+
+    #[test]
+    pub fn test_json_contains(){
+        // test with "select()" constructor:
+
+        let ins = [("1", ValueType::Integer), ("5", ValueType::Integer), ("11", ValueType::Integer)].to_vec();
+        let select_query = QueryBuilder::select(["*"].to_vec()).unwrap().json_contains("pic", ("\"/files/hello.jpg\"", ValueType::String), Some("path")).table("users").where_in("id", ins).finish();
+
+        assert_eq!(select_query, "SELECT JSON_CONTAINS(pic, '\"/files/hello.jpg\"', '$.path') FROM users WHERE id IN (1, 5, 11);".to_string());
+        
+        // test with ".where_cond()" method:
+
+        let where_query = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("pic", "=", ("", ValueType::String)).json_contains("pic", ("\"blablabla.jpg\"", ValueType::String), Some("name")).finish();
+
+        assert_eq!(where_query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, '\"blablabla.jpg\"', '$.name');".to_string());
+
+        // tests with ".and()" method:
+
+        let and_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).and("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+
+        assert_eq!(and_query_1, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+
+        let and_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).and("class", "=", ("5/c", ValueType::String)).and("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+
+        assert_eq!(and_query_2, "SELECT * FROM users WHERE age > 15 AND class = '5/c' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+        
+        let and_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).and("class", "=", ("5/c", ValueType::String)).and("surname", "=", ("etiman", ValueType::String)).and("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+    
+        assert_eq!(and_query_3, "SELECT * FROM users WHERE age > 15 AND class = '5/c'  AND surname = 'etiman' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+
+        let and_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).and("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some("age")).and("surname", "=", ("etiman", ValueType::String)).and("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+    
+        assert_eq!(and_query_4, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(parents, 50, '$.age')  AND surname = 'etiman' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+
+        let and_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).and("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some("age")).and("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+    
+        assert_eq!(and_query_5, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(parents, 50, '$.age') AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+        
+        // tests with ".or()" method:
+
+        let or_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+
+        assert_eq!(or_query_1, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+        
+        let or_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("class", "=", ("5/c", ValueType::String)).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+        
+        assert_eq!(or_query_2, "SELECT * FROM users WHERE age > 15 OR class = '5/c' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+                
+        let or_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("class", "=", ("5/c", ValueType::String)).or("surname", "=", ("etiman", ValueType::String)).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+            
+        assert_eq!(or_query_3, "SELECT * FROM users WHERE age > 15 OR class = '5/c'  OR surname = 'etiman' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+        
+        let or_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some("age")).or("surname", "=", ("etiman", ValueType::String)).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+            
+        assert_eq!(or_query_4, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age')  OR surname = 'etiman' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+        
+        let or_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some("age")).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some("average_point")).finish();
+            
+        assert_eq!(or_query_5, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age') OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
     }
 }
