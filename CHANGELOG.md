@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.4.0
+
+- added `.copy()` method for getting the immutable copy of the `QueryBuilder` struct.
+- `.json_extract()` method modified, now it supports multiple chaining of `JSON_EXTRACT()` method.
+
 ## v1.3.0
 
 - `.json_extract()` and `.json_contains()` functions are modified and their algorithm improved. Before that update, we assume you want to work with a column that is a json object and pointing a key. With that update, you can choose whether you want to work with a json array or json object, by simply putting a dot in the beginning of that function(for example, if you want to put "name" on the needle, you just have to make it ".name") or just select the which nth of that array with it's synthax.

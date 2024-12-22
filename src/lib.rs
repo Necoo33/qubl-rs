@@ -916,6 +916,14 @@ impl QueryBuilder {
 
                         self.query = format!("SELECT {}, COUNT{}", string_for_put, split_the_query.nth(1).unwrap())
                     },
+                    KeywordList::JsonExtract => {
+                        let mut split_the_query = self.query.split(" FROM");
+
+                        match _as {
+                            Some(_as) => self.query = format!("{}, JSON_EXTRACT({}, '${}') AS {} FROM", split_the_query.nth(0).unwrap(), haystack, needle, _as),
+                            None => panic!("If you want to chain .json_extract() methods, you have to give them a tag.")
+                        }
+                    }
                     _ => ()
                 }
             },
@@ -1192,6 +1200,16 @@ impl QueryBuilder {
     /// finishes the query and returns the result as string.
     pub fn finish(&self) -> String {
         return format!("{};", self.query);
+    }
+
+    /// gives you an immutable copy of that instance, just for case if you need to share and potentially mutate it across threads.
+    pub fn copy(&mut self) -> Self {
+        Self {
+            query: self.query.clone(),
+            table: self.table.clone(),
+            qtype: self.qtype.clone(),
+            list: self.list.clone()
+        }
     }
 
     /// checks the inputs for potential sql injection patterns and throws error if they exist.
@@ -1928,6 +1946,12 @@ mod test {
         let order_by_query_1 = QueryBuilder::select(fields).unwrap().table("contents").where_cond("published", "=", ("1", ValueType::Boolean)).order_by("likes", "ASC").json_extract("likes", ".name", None).finish();
 
         assert_eq!(order_by_query_1, "SELECT title, desc, created_at, updated_at, keywords, pics, likes FROM contents WHERE published = 1 ORDER BY JSON_EXTRACT(likes, '$.name') ASC;".to_string());
+    
+        // tests with ".json_extract()" method
+
+        let json_extract_chaining = QueryBuilder::select(["*"].to_vec()).unwrap().json_extract("articles", "[0]", Some("blog1")).json_extract("articles", "[1]", Some("blog2")).json_extract("articles", "[2]", Some("blog3")).table("users").where_cond("published", "=", ("1", ValueType::Boolean)).finish();
+
+        assert_eq!(json_extract_chaining, "SELECT JSON_EXTRACT(articles, '$[0]') AS blog1, JSON_EXTRACT(articles, '$[1]') AS blog2, JSON_EXTRACT(articles, '$[2]') AS blog3 FROM users WHERE published = 1;".to_string());
     }
 
     #[test]
