@@ -6,7 +6,7 @@ That builder enforces you to start your sql query from ground up and build it bo
 
 It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`, `UPDATE`, `COUNT`.
 
-It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`.
+It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`, `HAVING`.
 
 And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`
 

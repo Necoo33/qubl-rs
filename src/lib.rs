@@ -622,11 +622,41 @@ impl QueryBuilder {
                     }
                 }
 
-                for (i, column) in columns.into_iter().enumerate() {
-                    if i == 0 {
-                        self.query = format!("{} WHERE {} LIKE '%{}%'", self.query, column, operand);
-                    } else {
-                        self.query = format!("{} OR {} LIKE '%{}%'", self.query, column, operand);
+                match self.list.last() {
+                    Some(keyword) => {
+                        if keyword == &KeywordList::Where || keyword == &KeywordList::In || keyword == &KeywordList::NotIn {
+                            let length_of_columns = columns.len();
+
+                            for (i, column) in columns.into_iter().enumerate() {
+                                match length_of_columns {
+                                    1 => {
+                                        if i == 0 {
+                                            self.query = format!("{} AND {} LIKE '%{}%'", self.query, column, operand)
+                                        }
+                                    },
+                                    _ => {
+                                        if i == 0 {
+                                            self.query = format!("{} AND ({} LIKE '%{}%'", self.query, column, operand)
+                                        } else if i + 1 == length_of_columns {
+                                            self.query = format!("{} OR {} LIKE '%{}%')", self.query, column, operand)
+                                        } else {
+                                            self.query = format!("{} OR {} LIKE '%{}%'", self.query, column, operand)
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            for (i, column) in columns.into_iter().enumerate() {
+                                if i == 0 {
+                                    self.query = format!("{} WHERE {} LIKE '%{}%'", self.query, column, operand);
+                                } else {
+                                    self.query = format!("{} OR {} LIKE '%{}%'", self.query, column, operand);
+                                }
+                            }
+                        }
+                    },
+                    None => {
+
                     }
                 }
 
@@ -1661,7 +1691,7 @@ impl TableBuilder {
 }
 
 /// KeywordList enum. It helps to syntactically correcting the queries. 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
@@ -2012,5 +2042,29 @@ mod test {
         let or_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some(".age")).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some(".average_point")).finish();
             
         assert_eq!(or_query_5, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age') OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+    }
+
+    #[test]
+    pub fn test_like_later_than_where_keywords(){
+        let mut like_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap();
+
+        let like_query_1 = like_query_1.table("blogs")
+                                                      .where_cond("id", "=", ("5", ValueType::Integer))
+                                                      .like(["title", "description"].to_vec(), "hello")
+                                                      .finish();
+
+        assert_eq!(like_query_1, "SELECT * FROM blogs WHERE id = 5 AND (title LIKE '%hello%' OR description LIKE '%hello%');");
+    
+        let mut like_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap();
+
+        let ins = vec![("1", ValueType::Integer), ("2", ValueType::Integer), ("3", ValueType::Integer)];
+        let like_query_2 = like_query_2.table("blogs")
+                                                          .where_in("id", ins)
+                                                          .like(["title", "description", "keywords"].to_vec(), "necdet")
+                                                          .limit(10)
+                                                          .offset(0)
+                                                          .finish();
+
+        assert_eq!(like_query_2, "SELECT * FROM blogs WHERE id IN (1, 2, 3) AND (title LIKE '%necdet%' OR description LIKE '%necdet%' OR keywords LIKE '%necdet%') LIMIT 10 OFFSET 0;")
     }
 }
