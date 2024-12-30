@@ -8,6 +8,8 @@ It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`,
 
 It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`, `HAVING`.
 
+It supports that mysql functions: `FIELD()`, `COUNT()`, `RAND()`
+
 And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`
 
 ## Current Status
@@ -125,4 +127,4 @@ let delete_query = delete_query.finish();
 
 ## Disclaimer
 
-But don't forget, this liblary is just builds that queries, not executes it. For that, you have to use a database driver or orm.
+But don't forget, this liblary is just builds that queries, not executes it. For that, you have to use a database driver or orm. And also this query builder fully focused on returning returning datas from databases, it doesn't have a aim for supporting logical operations via sql and we don't give any guarantee that you can do working logical queries with possibilities of that crate.

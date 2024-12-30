@@ -676,10 +676,6 @@ impl QueryBuilder {
 
     /// It adds the "ORDER BY" keyword with it's synthax. It only accepts "ASC", "DESC", "asc", "desc" values.
     pub fn order_by(&mut self, column: &str, mut ordering: &str) -> &mut Self {
-        if self.query.contains("ORDER BY") {
-            panic!("Error in order_by method: you cannot add ordering option twice on a query.");
-        }
-
         match QueryBuilder::sanitize(vec![column]) {
             Ok(_) => (),
             Err(error) => {
@@ -699,7 +695,14 @@ impl QueryBuilder {
             &_ => panic!("Panicking in order_by method: There is no other ordering options than ASC or DESC.")
         }
 
-        self.query = format!("{} ORDER BY {} {}", self.query, column, ordering);
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::OrderBy => self.query = format!("{}, {} {}", self.query, column, ordering),
+                _ => self.query = format!("{} ORDER BY {} {}", self.query, column, ordering)
+            },
+            None => panic!("It's almost impossible you to come here.")
+        }
+
         self.list.push(KeywordList::OrderBy);
 
         self
@@ -713,6 +716,37 @@ impl QueryBuilder {
 
         self.query = format!("{} ORDER BY RAND()", self.query);
         self.list.push(KeywordList::OrderBy);
+
+        self
+    }
+
+    /// Adds "FIELD()" function with it's synthax. It's used on ordering depending on strings.
+    pub fn order_by_field(&mut self, column: &str, ordering: Vec<&str>) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::OrderBy => {
+                    let mut split_the_query = self.query.split(" ORDER BY ");
+                
+                    self.query = format!("{} ORDER BY {}, FIELD({}", split_the_query.nth(0).unwrap(), split_the_query.nth(0).unwrap(), column);
+
+                    for item in ordering {
+                        self.query = format!("{}, '{}'", self.query, item)
+                    }
+
+                    self.query = format!("{})", self.query);
+                },
+                _ => {
+                    let mut new_part_of_query = format!("ORDER BY FIELD({}", column);
+
+                    for item in ordering {
+                        new_part_of_query = format!("{}, '{}'", new_part_of_query, item)
+                    }
+
+                    self.query = format!("{} {})", self.query, new_part_of_query);
+                }
+            },
+            None => panic!("It's almost impossible you to come here.")
+        }
 
         self
     }
@@ -2066,5 +2100,25 @@ mod test {
                                                           .finish();
 
         assert_eq!(like_query_2, "SELECT * FROM blogs WHERE id IN (1, 2, 3) AND (title LIKE '%necdet%' OR description LIKE '%necdet%' OR keywords LIKE '%necdet%') LIMIT 10 OFFSET 0;")
+    }
+
+    #[test]
+    pub fn test_ordering_functions(){
+        let order_by_query = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by("weight", "desc").order_by("point", "asc").finish();
+
+        assert_eq!(order_by_query, "SELECT * FROM users ORDER BY id ASC, weight DESC, point ASC;");
+
+        let order_by_random_query = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_random().finish();
+
+        assert_eq!(order_by_random_query, "SELECT * FROM users ORDER BY RAND();");
+
+        let roles = ["admin", "moderator", "member", "guest"].to_vec();
+        let field_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by_field("role", roles.clone()).finish();
+
+        assert_eq!(field_query_1, "SELECT * FROM users ORDER BY FIELD(role, 'admin', 'moderator', 'member', 'guest');");
+
+        let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles).finish();
+
+        assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
     }
 }

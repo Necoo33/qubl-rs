@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.6.0
+
+- added `.order_by_field()` method, which benefits to apply `FIELD()` mysql function to query with it's synthax.
+- `.order_by()` function is modified, now it supports ORDER BY chaining.
+
 ## v1.5.0
 
 - the implementation of `.like()` method modified, now it supports to come later than `.where_cond()`, `.where_in()` or `.where_not_in()` methods. Previously, it was not produce correct queries when it used later then that methods because it also applies `WHERE` keywords for it's synthax. Now, you can use a different condition with `WHERE` methods and later than use that method for searching for rows that both provide the `WHERE` keywords condition. It searchs the needle on all the given columns seperately and takes the row if it exists on any of them.
