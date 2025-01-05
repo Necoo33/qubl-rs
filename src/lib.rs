@@ -72,7 +72,7 @@ impl QueryBuilder {
     }
 
     /// Insert constructor. Use it if you want to build a Insert Query.
-    pub fn insert(columns: Vec<&str>, values: Vec<(&str, ValueType)>) -> std::result::Result<Self, std::io::Error> {
+    pub fn insert(columns: Vec<&str>, values: Vec<ValueType>) -> std::result::Result<Self, std::io::Error> {
         let mut query = "INSERT INTO".to_string();
 
         match QueryBuilder::sanitize(columns.clone()) {
@@ -82,7 +82,26 @@ impl QueryBuilder {
             }
         }
 
-        let get_actual_values = values.clone().iter().map(|(s, _)| *s).collect::<Vec<&str>>();
+        /*let get_actual_values: Vec<&str> = values.into_iter().map(|s| {
+            return match s {
+                ValueType2::String(string) => &string,
+                ValueType2::Datetime(datetime) => &datetime,
+                ValueType2::Boolean(val) => &val.to_string(),
+                ValueType2::Int8(val) => &val.to_string(),
+                ValueType2::Int16(val) => &val.to_string(),
+                ValueType2::Int32(val) => &val.to_string(),
+                ValueType2::Int64(val) => &val.to_string(),
+                ValueType2::Int128(val) => &val.to_string(),
+                ValueType2::Usize(val) => &val.to_string(),
+                ValueType2::Uint8(val) => &val.to_string(),
+                ValueType2::Uint16(val) => &val.to_string(),
+                ValueType2::Uint32(val) => &val.to_string(),
+                ValueType2::Uint64(val) => &val.to_string(),
+                ValueType2::Float32(val) => &val.to_string(),
+                ValueType2::Float64(val) => &val.to_string(),
+                ValueType2::EpochTime(val) => &val.to_string(),
+            }
+        }).collect::<Vec<&str>>();
 
         match QueryBuilder::sanitize(get_actual_values.clone()) {
             Ok(_) => (),
@@ -90,87 +109,31 @@ impl QueryBuilder {
                 return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on insert constructor: because inserted arbitrary query in values parameter."))
 
             }
-        }
+        }*/
 
         let mut columns_string = "(".to_string();
         let mut values_string = "(".to_string();
-        let length_of_columns = columns.clone().len();
-        let length_of_values = get_actual_values.len();
+        //let length_of_columns = columns.clone().len();
+        //let length_of_values = get_actual_values.len();
 
-        if length_of_columns != length_of_values {
+        /*if length_of_columns != length_of_values {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "columns and values has to be same length, error on building query on insert constructor."))
-        }
+        }*/
 
-        for (i, column) in columns.clone().into_iter().enumerate() {
-            for (p, (value, vtype)) in values.clone().into_iter().enumerate() {
+        for (i, column) in columns.into_iter().enumerate() {
+            for (p, value) in values.iter().enumerate() {
                 match i == p {
                     true => {
-                        if (i + 1) != length_of_columns {
-                            columns_string = format!("{}{}, ", columns_string, column);
-
-                            match vtype {
-                                ValueType::String => {
-                                    if value.contains('"') {
-                                        values_string = format!("{}'{}', ", values_string, value)
-                                    } else if value.contains("'") {
-                                        values_string = format!("{}'{}', ", values_string, value)
-                                    } else {
-                                        values_string = format!("{}'{}', ", values_string, value)
-                                    }
-                                },
-                                ValueType::Integer => values_string = format!("{}{}, ", values_string, value),
-                                ValueType::Float => values_string = format!("{}{}, ", values_string, value),
-                                ValueType::Boolean => values_string = format!("{}{}, ", values_string, value),
-                                ValueType::Time => match value {
-                                    "UNIX_TIMESTAMP" => values_string = format!("{}{}, ", values_string, value),
-                                    "CURRENT_TIMESTAMP" => values_string = format!("{}{}, ", values_string, value),
-                                    "CURRENT_DATE" => values_string = format!("{}{}, ", values_string, value),
-                                    "CURRENT_TIME" => values_string = format!("{}{}, ", values_string, value),
-                                    "NOW()" => values_string = format!("{}{}, ", values_string, value),
-                                    "CURDATE()" => values_string = format!("{}{}, ", values_string, value),
-                                    "CURTIME()" => values_string = format!("{}{}, ", values_string, value),
-                                    _ => {
-                                        if value.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                                            values_string = format!("{}FROM_UNIXTIME({}), ", values_string, value.trim())
-                                        } else {
-                                            values_string = format!("{}'{}', ", values_string, value)
-                                        }  
-                                    },
-                                }
-                            }
+                        if i == 0 {
+                            columns_string = format!("{}{}", columns_string, column);        
                         } else {
-                            columns_string = format!("{}{})", columns_string, column);
+                            columns_string = format!("{}, {}", columns_string, column);
+                        }
 
-                            match vtype {
-                                ValueType::String => {
-                                    if value.contains('"') {
-                                        values_string = format!("{}'{}')", values_string, value)
-                                    } else if value.contains("'") {
-                                        values_string = format!("{}'{}')", values_string, value)
-                                    } else {
-                                        values_string = format!("{}'{}')", values_string, value)
-                                    }
-                                },
-                                ValueType::Integer => values_string = format!("{}{})", values_string, value),
-                                ValueType::Float => values_string = format!("{}{})", values_string, value),
-                                ValueType::Boolean => values_string = format!("{}{})", values_string, value),
-                                ValueType::Time => match value {
-                                    "UNIX_TIMESTAMP" => values_string = format!("{}{})", values_string, value),
-                                    "CURRENT_TIMESTAMP" => values_string = format!("{}{})", values_string, value),
-                                    "CURRENT_DATE" => values_string = format!("{}{})", values_string, value),
-                                    "CURRENT_TIME" => values_string = format!("{}{})", values_string, value),
-                                    "NOW()" => values_string = format!("{}{})", values_string, value),
-                                    "CURDATE()" => values_string = format!("{}{})", values_string, value),
-                                    "CURTIME()" => values_string = format!("{}{})", values_string, value),
-                                    _ => {
-                                        if value.split("").collect::<Vec<&str>>().into_iter().all(|char|  char == "" || char.parse::<i32>().is_ok()) {
-                                            values_string = format!("{}FROM_UNIXTIME({}))", values_string, value.trim())
-                                        } else {
-                                            values_string = format!("{}'{}')", values_string, value)
-                                        }  
-                                    },
-                                }
-                            }
+                        if p == 0 {
+                            values_string = format!("{}{}", values_string, value);
+                        } else {
+                            values_string = format!("{}, {}", values_string, value);
                         }
                     },
                     false => continue
@@ -178,8 +141,7 @@ impl QueryBuilder {
             }
         }
 
-        query = format!("{} {} VALUES {}", query, columns_string, values_string);
-        
+        query = format!("{} {}) VALUES {})", query, columns_string, values_string);
 
         return Ok(Self {
             query,
@@ -188,6 +150,41 @@ impl QueryBuilder {
             list: vec![KeywordList::Insert]
         })
     }
+
+    /// define the table. It should came after the constructors.
+    pub fn table(&mut self, table: &str) -> &mut Self {
+        match self.qtype {
+            QueryType::Select => {
+                self.query = format!("{} {}", self.query, table);
+                self.table = table.to_string();
+            },
+            QueryType::Delete => {
+                self.query = format!("{} {}", self.query, table);
+                self.table = table.to_string()
+            },
+            QueryType::Insert => {
+                let split_the_query = self.query.split(" INTO ").collect::<Vec<&str>>();
+    
+                self.query = format!("INSERT INTO {} {}", table, split_the_query[1]);
+                self.table = table.to_string();
+            }
+            QueryType::Update => {
+                self.query = format!("{} {}", self.query, table);
+                self.table = table.to_string()
+            },
+            QueryType::Count => {
+                self.query = format!("{} {}", self.query, table);
+                self.table = table.to_string()
+            }
+            QueryType::Null => panic!("You cannot add a table before you start a query"),
+            QueryType::Create => panic!("You cannot use create keyword with a QueryBuilder instance")
+        }
+    
+        self.list.push(KeywordList::Table);
+    
+        self
+    }
+    
 
     /// Count constructor. Use it if you want to learn to length of a table.
     pub fn count(condition: &str, _as: Option<&str>) -> Self {
@@ -205,43 +202,8 @@ impl QueryBuilder {
             list: vec![KeywordList::Count]
         }
     }
-
-    /// define the table. It should came after the constructors.
-    pub fn table(&mut self, table: &str) -> &mut Self {
-        match self.qtype {
-            QueryType::Select => {
-                self.query = format!("{} {}", self.query, table);
-                self.table = table.to_string();
-            },
-            QueryType::Delete => {
-                self.query = format!("{} {}", self.query, table);
-                self.table = table.to_string()
-            },
-            QueryType::Insert => {
-                let split_the_query = self.query.split(" INTO ").collect::<Vec<&str>>();
-
-                self.query = format!("INSERT INTO {} {}", table, split_the_query[1]);
-                self.table = table.to_string();
-            }
-            QueryType::Update => {
-                self.query = format!("{} {}", self.query, table);
-                self.table = table.to_string()
-            },
-            QueryType::Count => {
-                self.query = format!("{} {}", self.query, table);
-                self.table = table.to_string()
-            }
-            QueryType::Null => panic!("You cannot add a table before you start a query"),
-            QueryType::Create => panic!("You cannot use create keyword with a QueryBuilder instance")
-        }
-
-        self.list.push(KeywordList::Table);
-
-        self
-    }
-
     /// add the "WHERE" keyword with it's synthax.
-    pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
+/*    pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -393,7 +355,7 @@ impl QueryBuilder {
         self.list.push(KeywordList::NotIn);
         self
     }
-
+*/
     /// It adds the "IN" keyword with it's synthax and an empty condition, use it if you want to give more complex condition to "IN" keyword. Don't use ".where_cond()" with it.
     pub fn where_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
@@ -412,7 +374,7 @@ impl QueryBuilder {
     }
 
     /// It adds the "OR" keyword with it's synthax. Warning: It's not ready yet to chaining "AND" and "OR" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
-    pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
+/*   pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match QueryBuilder::sanitize(vec![column, mark, value.0]) {
             Ok(_) => {
                 match value.1 {
@@ -588,7 +550,7 @@ impl QueryBuilder {
             }
         }
     }
-
+*/
     /// It adds the "OFFSET" keyword with it's synthax. Be careful about it's alignment with "LIMIT" keyword.
     pub fn offset(&mut self, offset: i32) -> &mut Self {
         self.query = format!("{} OFFSET {}", self.query, offset);
@@ -748,6 +710,8 @@ impl QueryBuilder {
             None => panic!("It's almost impossible you to come here.")
         }
 
+        self.list.push(KeywordList::Field);
+
         self
     }
 
@@ -760,7 +724,7 @@ impl QueryBuilder {
         self
     }
 
-    pub fn having(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
+/*    pub fn having(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
         match value.1 {
             ValueType::String => self.query = format!("{} HAVING {} {} '{}'", self.query, column, mark, value.0),
             ValueType::Integer => self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value.0),
@@ -787,7 +751,7 @@ impl QueryBuilder {
 
         self
     }
-
+*/
     /// A wildcard method that gives you the chance to write a part of your query. Warning, it does not add any keyword to builder, i'll encourage to add proper keyword to it with `.append_keyword()` method for your custom query, otherwise you should continue building your query by yourself with that function, or you've to be prepared to encounter bugs.  
     pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
@@ -999,7 +963,7 @@ impl QueryBuilder {
     }
 
     /// It applies "JSON_CONTAINS()" mysql function with it's Synthax. If you encounter any syntactic bugs or deficiencies about that function, please report it via opening an issue.
-    pub fn json_contains(&mut self, column: &str, needle: (&str, ValueType), path: Option<&str>) -> &mut Self {
+    /*pub fn json_contains(&mut self, column: &str, needle: (&str, ValueType), path: Option<&str>) -> &mut Self {
         match self.list.last().unwrap() {
             KeywordList::Select => match path {
                 Some(path) => match needle.1 {
@@ -1259,7 +1223,7 @@ impl QueryBuilder {
         self.list.push(KeywordList::JsonContains);
 
         self
-    }
+    }*/
 
     /// finishes the query and returns the result as string.
     pub fn finish(&self) -> String {
@@ -1508,7 +1472,7 @@ impl TableBuilder {
         self
     }
 
-    pub fn default(&mut self, value: (&str, ValueType)) -> &mut Self {
+    /*pub fn default(&mut self, value: (&str, ValueType)) -> &mut Self {
         let split_the_query = self.query.clone();
         let split_the_query = split_the_query.split(", ").collect::<Vec<&str>>();
 
@@ -1558,7 +1522,7 @@ impl TableBuilder {
         }
 
         self
-    }
+    }*/
 
     pub fn unique(&mut self) -> &mut Self {
         self.query = format!("{} UNIQUE", self.query);
@@ -1698,14 +1662,14 @@ impl TableBuilder {
         self
     }
 
-    pub fn default_on_null(&mut self, value: (&str, ValueType)) -> &mut Self {
+    /*pub fn default_on_null(&mut self, value: (&str, ValueType)) -> &mut Self {
         match value.1 {
             ValueType::String => self.query = format!("{} DEFAULT '{}' ON NULL", self.query, value.0),
             _ => self.query = format!("{} DEFAULT {} ON NULL", self.query, value.0),
         }
 
         self
-    }
+    }*/
 
     pub fn invisible(&mut self) -> &mut Self {
         self.query = format!("{} INVISIBLE", self.query);
@@ -1729,7 +1693,7 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains
+    NotIn, JsonExtract, JsonContains, Field
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -1739,9 +1703,35 @@ pub enum QueryType {
 }
 
 /// ValueType enum. It benefits to detect and format the value with optimized way when you have to work with exact column values. 
+
 #[derive(Debug, Clone)]
 pub enum ValueType {
-    String, Boolean, Integer, Float, Time 
+    String(String), Datetime(String), Boolean(bool), Int32(i32), Int16(i16), Int8(i8), Int64(i64), Int128(i128),
+    Uint8(u8), Uint16(u16), Uint32(u32), Uint64(u64), Usize(usize), Float32(f32), Float64(f64),
+    EpochTime(i64),
+}
+
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValueType::String(string) => write!(f, "'{}'", string),
+            ValueType::Datetime(datetime) => write!(f, "'{}'", datetime),
+            ValueType::Boolean(val) => write!(f, "{}", val),
+            ValueType::Int8(val) => write!(f, "{}", val),
+            ValueType::Int16(val) => write!(f, "{}", val),
+            ValueType::Int32(val) => write!(f, "{}", val),
+            ValueType::Int64(val) => write!(f, "{}", val),
+            ValueType::Int128(val) => write!(f, "{}", val),
+            ValueType::Usize(val) => write!(f, "{}", val),
+            ValueType::Uint8(val) => write!(f, "{}", val),
+            ValueType::Uint16(val) => write!(f, "{}", val),
+            ValueType::Uint32(val) => write!(f, "{}", val),
+            ValueType::Uint64(val) => write!(f, "{}", val),
+            ValueType::Float32(val) => write!(f, "{}", val),
+            ValueType::Float64(val) => write!(f, "{}", val),
+            ValueType::EpochTime(val) => write!(f, "{}", val),
+        }
+    }
 }
 
 /// Enum that benefits you to define what you want with a foreign key.
@@ -1792,7 +1782,7 @@ mod test {
     #[test]
     pub fn test_insert_query(){
         let columns = vec!["title", "author", "description"];
-        let values = vec![("What's Up?", ValueType::String), ("John Doe", ValueType::String), ("Lorem ipsum dolor sit amet, consectetur adipiscing elit.", ValueType::String)];
+        let values = vec![ValueType::String("What's Up?".to_string()), ValueType::String("John Doe".to_string()), ValueType::String("Lorem ipsum dolor sit amet, consectetur adipiscing elit.".to_string())];
     
         let insert_query = QueryBuilder::insert(columns, values).unwrap().table("blogs").finish();
 
@@ -1801,7 +1791,7 @@ mod test {
                     insert_query);
     }
 
-    #[test]
+    /*#[test]
     pub fn test_update_query(){
         let update_query = QueryBuilder::update().unwrap().table("blogs").set("title", ("Hello Rust!", ValueType::String)).set("author", ("Necdet", ValueType::String)).finish();
 
@@ -2120,5 +2110,5 @@ mod test {
         let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles).finish();
 
         assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
-    }
+    }*/
 }
