@@ -1,26 +1,29 @@
 /// Struct that benefits to build queries for interactions with rdbms's.
 #[derive(Debug, Clone)]
-pub struct QueryBuilder {
+pub struct QueryBuilder<'a> {
     pub query: String,
     pub table: String,
     pub qtype: QueryType,
-    pub list: Vec<KeywordList>
+    pub list: Vec<KeywordList>,
+    pub hq: Option<[&'a str; 26]>
 }
 
 /// Implementations For QueryBuilder.
-impl QueryBuilder {
+impl<'a> QueryBuilder<'a> {
     /// Select constructor. Use it if you want to build a Select Query.
     pub fn select(fields: Vec<&str>) -> std::result::Result<Self, std::io::Error> {
-        match QueryBuilder::sanitize(fields.clone()) {
+        let hq = Self::load_hqs();
+        match Self::sanitize_columns(&fields, hq) {
             Ok(_) => {
-                if fields[0] == "*" {
+                if fields.len() > 1 && fields[0] == "*" {
                     let query = "SELECT * FROM".to_string();
     
                     return Ok(QueryBuilder {
                         query,
                         table: "".to_string(),
                         qtype: QueryType::Select,
-                        list: vec![KeywordList::Select]
+                        list: vec![KeywordList::Select],
+                        hq: Some(hq)
                     })
                 } else {
                     let mut query = "SELECT ".to_string();
@@ -41,7 +44,8 @@ impl QueryBuilder {
                         query,
                         table: "".to_string(),
                         qtype: QueryType::Select,
-                        list: vec![KeywordList::Select]
+                        list: vec![KeywordList::Select],
+                        hq: Some(hq)
                     })
                 }
             },
@@ -57,7 +61,8 @@ impl QueryBuilder {
             query: "DELETE FROM".to_string(),
             table: "".to_string(),
             qtype: QueryType::Delete,
-            list: vec![KeywordList::Delete]
+            list: vec![KeywordList::Delete],
+            hq: None
         })
     }
 
@@ -67,7 +72,8 @@ impl QueryBuilder {
             query: "UPDATE".to_string(),
             table: "".to_string(),
             qtype: QueryType::Update,
-            list: vec![KeywordList::Update]
+            list: vec![KeywordList::Update],
+            hq: None
         })
     }
 
@@ -75,50 +81,25 @@ impl QueryBuilder {
     pub fn insert(columns: Vec<&str>, values: Vec<ValueType>) -> std::result::Result<Self, std::io::Error> {
         let mut query = "INSERT INTO".to_string();
 
-        match QueryBuilder::sanitize(columns.clone()) {
+        let hq = Self::load_hqs();
+
+        match QueryBuilder::sanitize_columns(&columns, hq) {
             Ok(_) => (),
             Err(_) => {
                 return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on insert constructor: because inserted arbitrary query on columns parameter."))
             }
         }
 
-        /*let get_actual_values: Vec<&str> = values.into_iter().map(|s| {
-            return match s {
-                ValueType2::String(string) => &string,
-                ValueType2::Datetime(datetime) => &datetime,
-                ValueType2::Boolean(val) => &val.to_string(),
-                ValueType2::Int8(val) => &val.to_string(),
-                ValueType2::Int16(val) => &val.to_string(),
-                ValueType2::Int32(val) => &val.to_string(),
-                ValueType2::Int64(val) => &val.to_string(),
-                ValueType2::Int128(val) => &val.to_string(),
-                ValueType2::Usize(val) => &val.to_string(),
-                ValueType2::Uint8(val) => &val.to_string(),
-                ValueType2::Uint16(val) => &val.to_string(),
-                ValueType2::Uint32(val) => &val.to_string(),
-                ValueType2::Uint64(val) => &val.to_string(),
-                ValueType2::Float32(val) => &val.to_string(),
-                ValueType2::Float64(val) => &val.to_string(),
-                ValueType2::EpochTime(val) => &val.to_string(),
-            }
-        }).collect::<Vec<&str>>();
-
-        match QueryBuilder::sanitize(get_actual_values.clone()) {
+        match QueryBuilder::sanitize_inputs(&values, hq) {
             Ok(_) => (),
             Err(_) => {
                 return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "query cannot build on insert constructor: because inserted arbitrary query in values parameter."))
 
             }
-        }*/
+        }
 
         let mut columns_string = "(".to_string();
         let mut values_string = "(".to_string();
-        //let length_of_columns = columns.clone().len();
-        //let length_of_values = get_actual_values.len();
-
-        /*if length_of_columns != length_of_values {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "columns and values has to be same length, error on building query on insert constructor."))
-        }*/
 
         for (i, column) in columns.into_iter().enumerate() {
             for (p, value) in values.iter().enumerate() {
@@ -147,7 +128,8 @@ impl QueryBuilder {
             query,
             table: "".to_string(),
             qtype: QueryType::Insert,
-            list: vec![KeywordList::Insert]
+            list: vec![KeywordList::Insert],
+            hq: Some(hq)
         })
     }
 
@@ -199,107 +181,53 @@ impl QueryBuilder {
             query,
             table: "".to_string(),
             qtype: QueryType::Count,
-            list: vec![KeywordList::Count]
+            list: vec![KeywordList::Count],
+            hq: None
         }
     }
     /// add the "WHERE" keyword with it's synthax.
-/*    pub fn where_cond(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
-        match QueryBuilder::sanitize(vec![column, mark, value.0]) {
-            Ok(_) => {
-                match value.1 {
-                    ValueType::String => {
-                        if value.0.contains('"') {
-                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0)
-                        } else if value.0.contains("'") {
-
-                        } else {
-                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0)
-                        }
-                    }
-                    ValueType::Integer => self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Float => self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Boolean => {
-                        if value.0 == "true" || value.0 == "TRUE" {
-                            self.query = format!("{} WHERE {} {} {}", self.query, column, mark, true);
-                        }
-
-                        if value.0 == "false" || value.0 == "FALSE" {
-                            self.query = format!("{} WHERE {} {} {}", self.query, column, mark, false);
-                        }
-
-                        if value.0 != "0" {
-                            self.query = format!("{} WHERE {} {} 1", self.query, column, mark);
-                        } else {
-                            self.query = format!("{} WHERE {} {} 0", self.query, column, mark);
-                        }
-                    },
-                    ValueType::Time => { 
-                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                            self.query = format!("{} WHERE {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
-                        } else {
-                            self.query = format!("{} WHERE {} {} '{}'", self.query, column, mark, value.0);
-                        }  
-                    }
-                }
-
-                self.list.push(KeywordList::Where);
-
-                self
-            },
-            Err(error) => {
-                println!("An Error Occured when executing where method: {}", error);
-
-                self.list.push(KeywordList::Where);
-
-                self
-            }
+    pub fn where_(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+        match Self::sanitize_mark(mark) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
         }
+
+        match self.hq {
+            Some(_) => (),
+            None => self.hq = Some(Self::load_hqs())
+        }
+
+        match self.sanitize_column(&column) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.sanitize_input(&value) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value);
+
+        self.list.push(KeywordList::Where);
+
+        self
     }
 
     /// It adds the "IN" keyword with it's synthax. Don't use ".where_cond()" method if you use it.
-    pub fn where_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> &mut Self {
+    pub fn where_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
         self.query = format!("{} WHERE {} IN (", self.query, column);
 
         let length_of_ins = ins.len();
 
         for (index, value) in ins.into_iter().enumerate() {
-            match value.1 {
-                ValueType::String => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}'{}')", self.query, value.0);
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
                     
-                        continue;
-                    }
-
-                    self.query = format!("{}'{}', ", self.query, value.0);
-                },
-                ValueType::Integer => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}{})", self.query, value.0);
-                    
-                        continue;
-                    }
-
-                    self.query = format!("{}{}, ", self.query, value.0);
-                },
-                ValueType::Float => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}{})", self.query, value.0);
-                    
-                        continue;
-                    }
-
-                    self.query = format!("{}{}, ", self.query, value.0);
-                },
-                ValueType::Boolean => {
-                    if length_of_ins > 1 {
-                        panic!("Error: if your value type is boolean and you cannot pass more than one IN parameter.");
-                    }
-    
-                    self.query = format!("{}{})", self.query, value.0);
-                },
-                ValueType::Time => panic!("Not supported for now. If you want to search time types with IN operator use '.where_in_custom()' instead.")
+                continue;
             }
+
+            self.query = format!("{}{}, ", self.query, value);
         }
 
         self.list.push(KeywordList::In);
@@ -307,55 +235,25 @@ impl QueryBuilder {
     }
 
     /// It adds the "NOT IN" keyword with it's synthax. Don't use ".where_cond()" method if you use it.
-    pub fn where_not_in(&mut self, column: &str, ins: Vec<(&str, ValueType)>) -> &mut Self {
+     pub fn where_not_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
         self.query = format!("{} WHERE {} NOT IN (", self.query, column);
 
         let length_of_ins = ins.len();
 
         for (index, value) in ins.into_iter().enumerate() {
-            match value.1 {
-                ValueType::String => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}'{}')", self.query, value.0);
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
                     
-                        continue;
-                    }
-
-                    self.query = format!("{}'{}', ", self.query, value.0);
-                },
-                ValueType::Integer => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}{})", self.query, value.0);
-                    
-                        continue;
-                    }
-
-                    self.query = format!("{}{}, ", self.query, value.0);
-                },
-                ValueType::Float => {
-                    if index + 1 == length_of_ins {
-                        self.query = format!("{}{})", self.query, value.0);
-                    
-                        continue;
-                    }
-
-                    self.query = format!("{}{}, ", self.query, value.0);
-                },
-                ValueType::Boolean => {
-                    if length_of_ins > 1 {
-                        panic!("Error: if your value type is boolean and you cannot pass more than one IN parameter.");
-                    }
-    
-                    self.query = format!("{}{})", self.query, value.0);
-                },
-                ValueType::Time => panic!("Not supported for now. If you want to search time types with IN operator use '.where_in_custom()' instead.")
+                continue;
             }
+
+            self.query = format!("{}{}, ", self.query, value);
         }
 
         self.list.push(KeywordList::NotIn);
         self
     }
-*/
+
     /// It adds the "IN" keyword with it's synthax and an empty condition, use it if you want to give more complex condition to "IN" keyword. Don't use ".where_cond()" with it.
     pub fn where_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
@@ -374,183 +272,86 @@ impl QueryBuilder {
     }
 
     /// It adds the "OR" keyword with it's synthax. Warning: It's not ready yet to chaining "AND" and "OR" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
-/*   pub fn or(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
-        match QueryBuilder::sanitize(vec![column, mark, value.0]) {
-            Ok(_) => {
-                match value.1 {
-                    ValueType::String => self.query = format!("{} OR {} {} '{}'", self.query, column, mark, value.0),
-                    ValueType::Integer => self.query = format!("{} OR {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Float => self.query = format!("{} OR {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Boolean => {
-                        if value.0 == "true" || value.0 == "TRUE" {
-                            self.query = format!("{} OR {} {} {}", self.query, column, mark, true);
-                        }
-
-                        if value.0 == "false" || value.0 == "FALSE" {
-                            self.query = format!("{} OR {} {} {}", self.query, column, mark, false);
-                        }
-                    },
-                    ValueType::Time => {
-                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                            self.query = format!("{} OR {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
-                        } else {
-                            self.query = format!("{} OR {} {} '{}'", self.query, column, mark, value.0);
-                        }  
-                    }
-                }
-
-                self.list.push(KeywordList::Or);
-
-                self
-            },
-            Err(error) => {
-                println!("An Error Occured when executing or method: {}", error);
-
-                self.list.push(KeywordList::Or);
-
-                self
-            }
+   pub fn or(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+        match self.sanitize_column(column) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
         }
+
+        match Self::sanitize_mark(mark) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.sanitize_input(&value) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        self.query = format!("{} OR {} {} {}", self.query, column, mark, value);
+
+
+        self.list.push(KeywordList::Or);
+
+        self
     }
 
     /// It adds the "SET" keyword with it's synthax.
-    pub fn set(&mut self, column: &str, value: (&str, ValueType)) -> &mut Self {
-        match QueryBuilder::sanitize(vec![column, value.0]) {
-            Ok(_) => {
-                match value.1 {
-                    ValueType::String => {
-                        if self.query.contains("SET") {
-                            self.query = format!("{}, {} = '{}'", self.query, column, value.0)
-                        } else {
-                            self.query = format!("{} SET {} = '{}'", self.query, column, value.0)
-                        }
-                    },
-                    ValueType::Integer => {
-                        if self.query.contains("SET") {
-                            self.query = format!("{}, {} = {}", self.query, column, value.0)
-                        } else {
-                            self.query = format!("{} SET {} = {}", self.query, column, value.0);
-                        }
-                    }
-                    ValueType::Float => {
-                        if self.query.contains("SET") {
-                            self.query = format!("{}, {} = {}", self.query, column, value.0)
-                        } else {
-                            self.query = format!("{} SET {} = {}", self.query, column, value.0);
-                        }
-                    }
-                    ValueType::Boolean => {
-                        if value.0 == "true" || value.0 == "TRUE" {
-                            if self.query.contains("SET") {
-                                self.query = format!("{}, {} = {}", self.query, column, true);
-                            } else {
-                                self.query = format!("{} SET {} = {}", self.query, column, true);
-                            }
-                        }
-
-                        if value.0 == "false" || value.0 == "FALSE" {
-                            if self.query.contains("SET") {
-                                self.query = format!("{}, {} = {}", self.query, column, false);
-                            } else {
-                                self.query = format!("{} SET {} = {}", self.query, column, false);
-                            }
-                        }
-                    },
-                    ValueType::Time => {
-                        if self.query.contains("SET") {
-                            match value.0 {
-                                "UNIX_TIMESTAMP" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "CURRENT_TIMESTAMP" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "CURRENT_DATE" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "CURRENT_TIME" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "NOW()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "CURDATE()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                "CURTIME()" => self.query = format!("{}, {} = {}", self.query, column, value.0),
-                                _ => {
-                                    self.query = format!("{}, {} = '{}'", self.query, column, value.0);
-
-                                    if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                                        self.query = format!("{}, {} = FROM_UNIXTIME({})", self.query, column, value.0.trim());
-                                    } else {
-                                        self.query = format!("{}, {} = '{}'", self.query, column, value.0);
-                                    }  
-                                }
-                            }
-                        } else {
-                            match value.0 {
-                                "UNIX_TIMESTAMP" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "CURRENT_TIMESTAMP" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "CURRENT_DATE" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "CURRENT_TIME" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "NOW()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "CURDATE()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                "CURTIME()" => self.query = format!("{} SET {} = {}", self.query, column, value.0),
-                                _ => {
-                                    if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                                        self.query = format!("{} SET {} = FROM_UNIXTIME({})", self.query, column, value.0.trim());
-                                    } else {
-                                        self.query = format!("{} SET {} = '{}'", self.query, column, value.0);
-                                    }  
-                                }
-                            }
-                        }
-                    }
-                }
-
-                self.list.push(KeywordList::Set);
-
-                self
-            },
-            Err(error) => {
-                println!("An Error Occured when executing or method: {}", error);
-
-                self.list.push(KeywordList::Set);
-
-                self
-            }
+    pub fn set(&mut self, column: &str, value: ValueType) -> &mut Self {
+        match self.hq {
+            Some(_) => (),
+            None => self.hq = Some(Self::load_hqs())
         }
+
+        match self.sanitize_column(column) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.sanitize_input(&value) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.list.last() {
+            Some(keyword) => {
+                match keyword {
+                    KeywordList::Set => self.query = format!("{}, {} = {}", self.query, column, value),
+                    _ => self.query = format!("{} SET {} = {}", self.query, column, value)
+                }
+            },
+            None => panic!("that's impossible to come here.")
+        }
+
+        self.list.push(KeywordList::Set);
+
+        self
     }
 
     /// It adds the "AND" keyword with it's synthax. Warning: It's not ready yet to chaining "OR" and "AND" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
-    pub fn and(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
-        match QueryBuilder::sanitize(vec![column, mark, value.0]) {
-            Ok(_) => {
-                match value.1 {
-                    ValueType::String => self.query = format!("{} AND {} {} '{}'", self.query, column, mark, value.0),
-                    ValueType::Integer => self.query = format!("{} AND {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Float => self.query = format!("{} AND {} {} {}", self.query, column, mark, value.0),
-                    ValueType::Boolean => {
-                        if value.0 == "true" || value.0 == "TRUE" {
-                            self.query = format!("{} AND {} {} {}", self.query, column, mark, true);
-                        }
-
-                        if value.0 == "false" || value.0 == "FALSE" {
-                            self.query = format!("{} AND {} {} {}", self.query, column, mark, false);
-                        }
-                    },
-                    ValueType::Time => {
-                        if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                            self.query = format!("{} AND {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
-                        } else {
-                            self.query = format!("{} AND {} {} '{}'", self.query, column, mark, value.0);
-                        }  
-                    }
-                }
-
-                self.list.push(KeywordList::And);
-
-                self
-            },
-            Err(error) => {
-                println!("An Error Occured when executing and method: {}", error);
-
-                self.list.push(KeywordList::And);
-
-                self
-            }
+     pub fn and(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+        match self.sanitize_column(column) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
         }
+
+        match Self::sanitize_mark(mark) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.sanitize_input(&value) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        self.query = format!("{} AND {} {} {}", self.query, column, mark, value);
+
+        self.list.push(KeywordList::And);
+
+        self
     }
-*/
+
     /// It adds the "OFFSET" keyword with it's synthax. Be careful about it's alignment with "LIMIT" keyword.
     pub fn offset(&mut self, offset: i32) -> &mut Self {
         self.query = format!("{} OFFSET {}", self.query, offset);
@@ -571,30 +372,40 @@ impl QueryBuilder {
 
     /// It adds the "LIKE" keyword with it's synthax.
     pub fn like(&mut self, columns: Vec<&str>, operand: &str) -> &mut Self {
-        match QueryBuilder::sanitize(columns.clone()) {
+        let hqs = match self.hq {
+            Some(hqs) => hqs,
+            None => {
+                let load_hqs = Self::load_hqs();
+                self.hq = Some(load_hqs);
+
+                load_hqs
+            }
+        };
+
+        match Self::sanitize_columns(&columns, hqs) {
             Ok(_) => {
-                match QueryBuilder::sanitize(vec![operand]){
+                match self.sanitize_str(operand){
                     Ok(_) => (),
                     Err(error) => {
                         println!("That Error Occured in like method: {}", error);
-        
+                
                         self.list.push(KeywordList::Like);
-
+        
                         return self
                     }
                 }
-
+        
                 match self.list.last() {
                     Some(keyword) => {
                         if keyword == &KeywordList::Where || keyword == &KeywordList::In || keyword == &KeywordList::NotIn {
                             let length_of_columns = columns.len();
-
+        
                             for (i, column) in columns.into_iter().enumerate() {
                                 match length_of_columns {
                                     1 => {
                                         if i == 0 {
                                             self.query = format!("{} AND {} LIKE '%{}%'", self.query, column, operand)
-                                        }
+                                        }  
                                     },
                                     _ => {
                                         if i == 0 {
@@ -617,28 +428,18 @@ impl QueryBuilder {
                             }
                         }
                     },
-                    None => {
-
-                    }
+                    None => panic!("Our current implementation does not support to use '.like()' later not other than WHERE, IN or NOT IN queries.")
                 }
 
-                self.list.push(KeywordList::Like);
-
-                self
+                return self
             },
-            Err(error) => {
-                println!("That Error Occured in like method: {}", error);
-
-                self.list.push(KeywordList::Like);
-
-                self
-            }
+            Err(error) => panic!("That error occured in '.like()' method: {}", error)
         }
     }
 
     /// It adds the "ORDER BY" keyword with it's synthax. It only accepts "ASC", "DESC", "asc", "desc" values.
     pub fn order_by(&mut self, column: &str, mut ordering: &str) -> &mut Self {
-        match QueryBuilder::sanitize(vec![column]) {
+        match self.sanitize_column(column) {
             Ok(_) => (),
             Err(error) => {
                 println!("{}", error);
@@ -724,34 +525,29 @@ impl QueryBuilder {
         self
     }
 
-/*    pub fn having(&mut self, column: &str, mark: &str, value: (&str, ValueType)) -> &mut Self {
-        match value.1 {
-            ValueType::String => self.query = format!("{} HAVING {} {} '{}'", self.query, column, mark, value.0),
-            ValueType::Integer => self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value.0),
-            ValueType::Float => self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value.0),
-            ValueType::Boolean => {
-                if value.0 == "true" || value.0 == "TRUE" {
-                    self.query = format!("{} HAVING {} {} {}", self.query, column, mark, true);
-                }
-
-                if value.0 == "false" || value.0 == "FALSE" {
-                    self.query = format!("{} HAVING {} {} {}", self.query, column, mark, false);
-                }
-            },
-            ValueType::Time => {
-                if value.0.split("").collect::<Vec<&str>>().into_iter().all(|char| char == "" ||  char.parse::<i32>().is_ok()) {
-                    self.query = format!("{} HAVING {} {} FROM_UNIXTIME({})", self.query, column, mark, value.0.trim());
-                } else {
-                    self.query = format!("{} HAVING {} {} '{}'", self.query, column, mark, value.0);
-                }  
-            }
+    pub fn having(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+        match self.sanitize_column(column) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
         }
+
+        match Self::sanitize_mark(mark) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        match self.sanitize_input(&value) {
+            Ok(_) => (),
+            Err(error) => panic!("{}", error)
+        }
+
+        self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value);
 
         self.list.push(KeywordList::Having);
 
         self
     }
-*/
+
     /// A wildcard method that gives you the chance to write a part of your query. Warning, it does not add any keyword to builder, i'll encourage to add proper keyword to it with `.append_keyword()` method for your custom query, otherwise you should continue building your query by yourself with that function, or you've to be prepared to encounter bugs.  
     pub fn append_custom(&mut self, query: &str) -> &mut Self {
         self.query = format!("{} {}", self.query, query);
@@ -1236,48 +1032,111 @@ impl QueryBuilder {
             query: self.query.clone(),
             table: self.table.clone(),
             qtype: self.qtype.clone(),
-            list: self.list.clone()
+            list: self.list.clone(),
+            hq: self.hq
         }
     }
 
+    fn load_hqs() -> [&'a str; 26] {
+        [";", "; drop", "admin' #", "admin'/*", "; union", "or 1 = 1",
+        "or 1 = 1#", "or 1 = 1/*", "or true = true", "or false = false", "or '1' = '1'", "or '1' = '1'#",
+        "or '1' = '1'/*", "; sleep(", "--", "drop table", "drop schema", "select if", "union select",
+        "union all", "exec", "master..", "masters..", "information_schema", "load_file", "alter user"]
+    }
+
+    fn sanitize_column(&mut self, column: &str)  -> std::result::Result<(), std::io::Error>  {
+        match self.hq {
+            Some(hqs) => {
+                for _hq in hqs.iter() {
+                    if &column == _hq {
+                        return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "You cannot run arbitrary queries"))
+                    }
+                }
+            },
+            None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Your input is invalid."))
+        }
+
+        Ok(())
+    }
+
     /// checks the inputs for potential sql injection patterns and throws error if they exist.
-    fn sanitize(fields: Vec<&str>) -> std::result::Result<String, std::io::Error> {
-        if fields.len() == 1 && fields[0] == "" {
-            return Ok("".to_string());
+    fn sanitize_columns(columns: &Vec<&str>, hqs: [&'a str; 26]) -> std::result::Result<(), std::io::Error> {
+        if columns.len() == 1 && columns[0] == "" {
+            return Ok(());
         };
 
-        for field in fields.into_iter() {
-            if (field.to_lowercase().contains(";") && (field.len() < 40)) ||
-                field.to_lowercase().contains("; drop") ||
-                field.to_lowercase().contains("admin' #") ||
-                field.to_lowercase().contains("admin'/*") ||
-                field.to_lowercase().contains("; union") ||
-                field.to_lowercase().contains("or 1 = 1") ||
-                field.to_lowercase().contains("or 1 = 1#") ||
-                field.to_lowercase().contains("or 1 = 1/*") ||
-                field.to_lowercase().contains("or true = true") ||
-                field.to_lowercase().contains("or false = false") ||
-                field.to_lowercase().contains("or '1' = '1'") ||
-                field.to_lowercase().contains("or '1' = '1'#") ||
-                field.to_lowercase().contains("or '1' = '1'/*") ||
-                field.to_lowercase().contains("; sleep(") ||
-                field.to_lowercase().contains("--") ||
-                field.to_lowercase().contains("drop table") ||
-                field.to_lowercase().contains("drop schema") ||
-                field.to_lowercase().contains("select if") ||
-                field.to_lowercase().contains("union select") ||
-                field.to_lowercase().contains("union all") ||
-                field.to_lowercase().contains("exec") ||
-                field.to_lowercase().contains("master..") ||
-                field.to_lowercase().contains("masters..") ||
-                field.to_lowercase().contains("information_schema") ||
-                field.to_lowercase().contains("load_file") ||
-                field.to_lowercase().contains("alter user") {
+        for column in columns.iter() {
+            for hq in hqs.iter() {
+                if column == hq {
                     return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "You cannot run arbitrary queries"))
+                }
             }
         }
 
-        return Ok("".to_string())
+        return Ok(())
+    }
+
+    fn sanitize_inputs(inputs: &Vec<ValueType>, hqs: [&'a str; 26]) -> std::result::Result<(), std::io::Error> {
+        for input in inputs.iter() {
+            match input {
+                ValueType::String(string) | ValueType::Datetime(string) => {
+                    for hq in hqs.iter() {
+                        if &string == hq {
+                            return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "You cannot run arbitrary queries"))
+                        }
+                    }
+                },
+                _ => continue
+            }
+        }
+
+        return Ok(())
+    }
+
+    fn sanitize_input(&mut self, input: &ValueType) -> std::result::Result<(), std::io::Error> {
+        match input {
+            ValueType::String(string) | ValueType::Datetime(string) => {
+                match self.hq {
+                    Some(hqs) => {
+                        for hq in hqs.iter() {
+                            if &string == hq {
+                                return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "You cannot run arbitrary queries"))
+                            }
+                        }
+                    },
+                    None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Your input is invalid."))
+                }
+            },
+            _ => return Ok(())
+        };
+
+        Ok(())
+    }
+
+    fn sanitize_mark(input: &str) -> std::result::Result<(), std::io::Error> {
+        return match input {
+            "=" | "<" | ">" | "<=" | ">=" | "!=" | "<>" => Ok(()),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "comparison operators cannot be other than =, <, >, <=,  >=, != or <>."))
+        }
+    }
+
+    fn sanitize_str(&mut self, input: &str) -> std::result::Result<(), std::io::Error> {
+        match self.hq {
+            Some(hqs) => {
+                for hq in hqs.iter() {
+                    if *hq == input {
+                        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "comparison operators cannot be other than =, <, >, <=,  >=, != or <>."))
+                    }
+                }
+            },
+            None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "comparison operators cannot be other than =, <, >, <=,  >=, != or <>."))
+        }
+
+        Ok(())
+        /*return match input {
+            "=" | "<" | ">" | "<=" | ">=" | "!=" | "<>" => Ok(()),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "comparison operators cannot be other than =, <, >, <=,  >=, != or <>."))
+        }*/
     }
 }
 
@@ -1715,7 +1574,10 @@ impl std::fmt::Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ValueType::String(string) => write!(f, "'{}'", string),
-            ValueType::Datetime(datetime) => write!(f, "'{}'", datetime),
+            ValueType::Datetime(datetime) => match datetime.as_str() {
+                "CURRENT_TIMESTAMP" | "UNIX_TIMESTAMP" | "CURRENT_DATE" | "CURRENT_TIME" | "NOW()" | "CURDATE()" | "CURTIME()" => write!(f, "{}", datetime),
+                _ => write!(f, "'{}'", datetime)
+            },
             ValueType::Boolean(val) => write!(f, "{}", val),
             ValueType::Int8(val) => write!(f, "{}", val),
             ValueType::Int16(val) => write!(f, "{}", val),
@@ -1729,7 +1591,7 @@ impl std::fmt::Display for ValueType {
             ValueType::Uint64(val) => write!(f, "{}", val),
             ValueType::Float32(val) => write!(f, "{}", val),
             ValueType::Float64(val) => write!(f, "{}", val),
-            ValueType::EpochTime(val) => write!(f, "{}", val),
+            ValueType::EpochTime(val) => write!(f, "FROM_UNIXTIME({})", val),
         }
     }
 }
@@ -1791,16 +1653,16 @@ mod test {
                     insert_query);
     }
 
-    /*#[test]
+    #[test]
     pub fn test_update_query(){
-        let update_query = QueryBuilder::update().unwrap().table("blogs").set("title", ("Hello Rust!", ValueType::String)).set("author", ("Necdet", ValueType::String)).finish();
+        let update_query = QueryBuilder::update().unwrap().table("blogs").set("title", ValueType::String("Hello Rust!".to_string())).set("author", ValueType::String("Necdet".to_string())).finish();
 
         assert_eq!("UPDATE blogs SET title = 'Hello Rust!', author = 'Necdet';", update_query);
     }
 
     #[test]
     pub fn test_delete_query(){
-        let delete_query = QueryBuilder::delete().unwrap().table("blogs").where_cond("id", "=", ("1", ValueType::String)).finish();
+        let delete_query = QueryBuilder::delete().unwrap().table("blogs").where_("id", "=", ValueType::String("1".to_string())).finish();
 
         assert_eq!("DELETE FROM blogs WHERE id = '1';", delete_query);
     }
@@ -1810,9 +1672,9 @@ mod test {
         let mut select = QueryBuilder::select(["id", "title", "description", "point"].to_vec()).unwrap();
 
         let select_query = select.table("blogs")
-                                    .where_cond("id", "=", ("10", ValueType::Integer))
-                                    .and("point", ">", ("90", ValueType::Integer))
-                                    .or("id", "=", ("20", ValueType::Integer))
+                                    .where_("id", "=", ValueType::Int32(10))
+                                    .and("point", ">", ValueType::Int8(90))
+                                    .or("id", "=", ValueType::Int64(20))
                                     .finish();
 
         assert_eq!("SELECT id, title, description, point FROM blogs WHERE id = 10 AND point > 90 OR id = 20;", select_query)
@@ -1823,8 +1685,8 @@ mod test {
         let mut select = QueryBuilder::select(["*"].to_vec()).unwrap();
 
         let select_query = select.table("blogs");
-        select_query.where_cond("id", "=", ("5", ValueType::Integer));
-        select_query.or("id", "=", ("25", ValueType::Integer));
+        select_query.where_("id", "=", ValueType::Uint8(5));
+        select_query.or("id", "=", ValueType::Usize(25));
 
         let finish_the_select_query = select_query.finish();
 
@@ -1861,13 +1723,13 @@ mod test {
     #[test]
     pub fn test_time_value_type(){
         let columns = ["name", "password", "last_login"].to_vec();
-        let values = [("necoo33", ValueType::String), ("123456", ValueType::String), ("CURRENT_TIMESTAMP", ValueType::Time)].to_vec();
+        let values = [ValueType::String("necoo33".to_string()), ValueType::String("123456".to_string()), ValueType::Datetime("CURRENT_TIMESTAMP".to_string())].to_vec();
     
         let time_insert_test = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
 
         assert_eq!(time_insert_test, "INSERT INTO users (name, password, last_login) VALUES ('necoo33', '123456', CURRENT_TIMESTAMP);");
 
-        let time_update_test = QueryBuilder::update().unwrap().table("users").set("last_login", ("CURRENT_TIMESTAMP", ValueType::Time)).where_cond("name", "=", ("necoo33", ValueType::String)).finish();
+        let time_update_test = QueryBuilder::update().unwrap().table("users").set("last_login", ValueType::Datetime("CURRENT_TIMESTAMP".to_string())).where_("name", "=", ValueType::String("necoo33".to_string())).finish();
 
         assert_eq!(time_update_test, "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE name = 'necoo33';")
     }
@@ -1875,18 +1737,18 @@ mod test {
     #[test]
     pub fn test_unix_epoch_times(){
         let columns = ["name", "password", "last_login"].to_vec();
-        let values = [("necoo33", ValueType::String), ("123456", ValueType::String), ("134523452", ValueType::Time)].to_vec();
+        let values = [ValueType::String("necoo33".to_string()), ValueType::String("123456".to_string()), ValueType::EpochTime(134523452)].to_vec();
     
         let time_insert_with_unix_epoch_times_test = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
         assert_eq!(time_insert_with_unix_epoch_times_test, "INSERT INTO users (name, password, last_login) VALUES ('necoo33', '123456', FROM_UNIXTIME(134523452));");
     
-        let time_update_with_unix_epoch_times_test = QueryBuilder::update().unwrap().table("users").set("last_login", ("3456436", ValueType::Time)).where_cond("name", "=", ("necoo33", ValueType::String)).finish();
+        let time_update_with_unix_epoch_times_test = QueryBuilder::update().unwrap().table("users").set("last_login", ValueType::EpochTime(3456436)).where_("name", "=", ValueType::String("necoo33".to_string())).finish();
 
         assert_eq!(time_update_with_unix_epoch_times_test, "UPDATE users SET last_login = FROM_UNIXTIME(3456436) WHERE name = 'necoo33';");
 
         let columns = ["name", "password", "last_login", "created_at"].to_vec();
 
-        let unix_epoch_times_test_3 = QueryBuilder::select(columns).unwrap().table("users").where_cond("created_at", ">", ("3234534", ValueType::Time)).or("last_login", ">=", ("2134432", ValueType::Time)).offset(0).limit(20).finish();
+        let unix_epoch_times_test_3 = QueryBuilder::select(columns).unwrap().table("users").where_("created_at", ">", ValueType::EpochTime(3234534)).or("last_login", ">=", ValueType::EpochTime(2134432)).offset(0).limit(20).finish();
 
         assert_eq!(unix_epoch_times_test_3, "SELECT name, password, last_login, created_at FROM users WHERE created_at > FROM_UNIXTIME(3234534) OR last_login >= FROM_UNIXTIME(2134432) OFFSET 0 LIMIT 20;")
     }
@@ -1895,17 +1757,17 @@ mod test {
     pub fn test_where_ins(){
         let columns = ["name", "age", "id", "last_login"].to_vec();
 
-        let ids = [("1", ValueType::Integer), ("12", ValueType::Integer), ("8", ValueType::Integer)].to_vec();
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int64(8)].to_vec();
 
-        let test_where_in = QueryBuilder::select(columns).unwrap().table("users").where_in("id", ids).finish();
+        let test_where_in = QueryBuilder::select(columns).unwrap().table("users").where_in("id", &ids).finish();
 
         assert_eq!(test_where_in, "SELECT name, age, id, last_login FROM users WHERE id IN (1, 12, 8);");
 
         let columns = ["name", "age", "id", "last_login"].to_vec();
 
-        let ids = [("1", ValueType::Integer), ("12", ValueType::Integer), ("8", ValueType::Integer)].to_vec();
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int32(8)].to_vec();
 
-        let test_where_not_in = QueryBuilder::select(columns).unwrap().table("users").where_not_in("id", ids).finish();
+        let test_where_not_in = QueryBuilder::select(columns).unwrap().table("users").where_not_in("id", &ids).finish();
 
         assert_eq!(test_where_not_in, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);");
 
@@ -1924,7 +1786,7 @@ mod test {
 
     #[test]
     pub fn test_count() {
-        let count_of_users = QueryBuilder::count("*", None).table("users").where_cond("age", ">", ("25", ValueType::Integer)).finish();
+        let count_of_users = QueryBuilder::count("*", None).table("users").where_("age", ">", ValueType::Int32(25)).finish();
 
         assert_eq!(count_of_users, "SELECT COUNT(*) FROM users WHERE age > 25;".to_string());
 
@@ -1933,7 +1795,7 @@ mod test {
         assert_eq!(count_of_users_as_length, "SELECT COUNT(*) AS length FROM users;".to_string());
     }
 
-    #[test]
+    /*#[test]
     pub fn test_json_extract(){
         // tests with "select()" constructor
 
@@ -2066,14 +1928,14 @@ mod test {
         let or_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_cond("age", ">", ("15", ValueType::Integer)).or("sdfgsdfg", "=", ("", ValueType::String)).json_contains("parents", ("50", ValueType::Integer), Some(".age")).or("asdfasdf", ">", ("", ValueType::String)).json_contains("graduation_stats", ("80.11", ValueType::Float), Some(".average_point")).finish();
             
         assert_eq!(or_query_5, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age') OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
-    }
+    }*/
 
     #[test]
     pub fn test_like_later_than_where_keywords(){
         let mut like_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap();
 
         let like_query_1 = like_query_1.table("blogs")
-                                                      .where_cond("id", "=", ("5", ValueType::Integer))
+                                                      .where_("id", "=", ValueType::Int32(5))
                                                       .like(["title", "description"].to_vec(), "hello")
                                                       .finish();
 
@@ -2081,9 +1943,9 @@ mod test {
     
         let mut like_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap();
 
-        let ins = vec![("1", ValueType::Integer), ("2", ValueType::Integer), ("3", ValueType::Integer)];
+        let ins = vec![ValueType::Int32(1), ValueType::Int32(2), ValueType::Int32(3)];
         let like_query_2 = like_query_2.table("blogs")
-                                                          .where_in("id", ins)
+                                                          .where_in("id", &ins)
                                                           .like(["title", "description", "keywords"].to_vec(), "necdet")
                                                           .limit(10)
                                                           .offset(0)
@@ -2110,5 +1972,5 @@ mod test {
         let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles).finish();
 
         assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
-    }*/
+    }
 }
