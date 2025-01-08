@@ -33,7 +33,7 @@ fn main(){
 
     let fields = vec!["name", "surname", "age"];
 
-    let values = vec![("necdet", ValueType::String), ("etiman", ValueType::String), ("21", ValueType::Integer)];
+    let values = vec![ValueType::String("necdet".to_string()), ValueType::String("etiman".to_string()), ValueType::Int32(21)];
 
     let insert_query = QueryBuilder::insert(fields, values).unwrap();
 
@@ -58,8 +58,8 @@ select_query.table("products");
 
 // do something:
 
-select_query.where_cond("price", "<", ("250", ValueType::Integer));
-select_query.and("price", ">", ("50", ValueType::Integer));
+select_query.where_cond("price", "<", ValueType::Int32(250));
+select_query.and("price", ">", ValueType::Int32(50));
 select_query.limit(10);
 select_query.offset(0);
 
@@ -76,7 +76,7 @@ Or, do it declarative way:
 
 // ...
 
-let finish_the_select_query = select_query.table("products").where_cond("price", "<", ("250", ValueType::Integer)).and("price", ">", ("50", ValueType::Integer)).limit(10).offset(0).finish();
+let finish_the_select_query = select_query.table("products").where_cond("price", "<", ValueType::Int32(250)).and("price", ">", ValueType::Int32(50)).limit(10).offset(0).finish();
 
 // ...
 
@@ -89,9 +89,9 @@ let finish_the_select_query = select_query.table("products").where_cond("price",
 ```rust
 
     let columns = vec!["id", "name", "surname", "age", "password", "email", "grade", "passed"];
-    let values = vec![("1", ValueType::Integer), ("necdet arda", ValueType::String), ("etiman", ValueType::String),
-                      ("25", ValueType::Integer), ("123456", ValueType::String), ("arda_etiman_799@windowslive.com", ValueType::String),
-                      ("75.65", ValueType::Float), ("true", ValueType::Boolean)];
+    let values = vec![ValueType::Int32(1), ValueType::String("necdet arda".to_string()), ValueType::String("etiman".to_string()),
+                      ValueType::Int32(24), ValueType::String("123456".to_string()), ValueType::String("arda_etiman_799@windowslive.com".to_string()),
+                      ValueType::Float64(75.65), ValueType::Boolean(true)];
 
     let insert_query = QueryBuilder::insert(columns, values).unwrap().table("users").finish();
 
@@ -104,7 +104,7 @@ let finish_the_select_query = select_query.table("products").where_cond("price",
 let mut delete_query = QueryBuilder::delete().unwrap();
 
 delete_query.table("users");
-delete_query.where_cond("age", "<", ("25", ValueType::Integer));
+delete_query.where_("age", "<", ValueType::Int32(25));
 
 let delete_query = delete_query.finish();
 
@@ -117,9 +117,9 @@ let delete_query = delete_query.finish();
     let mut update_query = QueryBuilder::update().unwrap();
 
     update_query = update_query.table("users")
-                               .set("name", ("necdet", ValueType::String))
-                               .set("passed", ("true", ValueType::Boolean))
-                               .where_cond("id", "=", ("1", ValueType::Integer));
+                               .set("name", ValueType::String("necdet".to_string()))
+                               .set("passed", ValueType::Boolean(true))
+                               .where_("id", "=", ValueType::Int32(1));
 
     let finish_update_query = update_query.finish();
 

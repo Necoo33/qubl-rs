@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.0
+
+- `ValueType` Enum had breaking changes: Now we implemented `Display` trait to it, now we don't have to give values with old cumbersome way. You can reach it's details on [README.md](https://github.com/Necoo33/qubl-rs) or [Official Documentation](https://docs.rs/qubl-rs/latest/qubl/).
+- documentation updated, basic usages are shown for each query.
+
 ## v1.6.0
 
 - added `.order_by_field()` method, which benefits to apply `FIELD()` mysql function to query with it's synthax.
