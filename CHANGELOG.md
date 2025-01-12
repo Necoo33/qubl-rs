@@ -3,6 +3,7 @@
 ## v2.1.0
 
 - `FROM` trait implemented to `ValueType` enum.
+- `v2rc1` branch merged to main.
 
 ## v2.0.0
 
