@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.0
+
+- `FROM` trait implemented to `ValueType` enum.
+
 ## v2.0.0
 
 - `ValueType` Enum had breaking changes: Now we implemented `Display` trait to it, now we don't have to give values with old cumbersome way. You can reach it's details on [README.md](https://github.com/Necoo33/qubl-rs) or [Official Documentation](https://docs.rs/qubl-rs/latest/qubl/).

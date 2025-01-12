@@ -1765,6 +1765,21 @@ impl std::fmt::Display for ValueType {
     }
 }
 
+impl From<String> for ValueType { fn from(value: String) -> Self { ValueType::String(value) } }
+impl From<bool> for ValueType { fn from(value: bool) -> Self { ValueType::Boolean(value) } }
+impl From<i8> for ValueType { fn from(value: i8) -> Self { ValueType::Int8(value) } }
+impl From<i16> for ValueType { fn from(value: i16) -> Self { ValueType::Int16(value) } }
+impl From<i32> for ValueType { fn from(value: i32) -> Self { ValueType::Int32(value) } }
+impl From<i64> for ValueType { fn from(value: i64) -> Self { ValueType::Int64(value) } }
+impl From<i128> for ValueType { fn from(value: i128) -> Self { ValueType::Int128(value) } }
+impl From<usize> for ValueType { fn from(value: usize) -> Self { ValueType::Usize(value) } }
+impl From<u8> for ValueType { fn from(value: u8) -> Self { ValueType::Uint8(value) } }
+impl From<u16> for ValueType { fn from(value: u16) -> Self { ValueType::Uint16(value) } }
+impl From<u32> for ValueType { fn from(value: u32) -> Self { ValueType::Uint32(value) } }
+impl From<u64> for ValueType { fn from(value: u64) -> Self { ValueType::Uint64(value) } }
+impl From<f32> for ValueType { fn from(value: f32) -> Self { ValueType::Float32(value) } }
+impl From<f64> for ValueType { fn from(value: f64) -> Self { ValueType::Float64(value) } }
+
 /// Enum that benefits you to define what you want with a foreign key.
 #[derive(Debug, Clone)]
 pub enum ForeignKeyActions {
