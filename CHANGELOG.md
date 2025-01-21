@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.2.0
+
+- Added Null value support for `QueryBuilder` struct.
+
 ## v2.1.0
 
 - `FROM` trait implemented to `ValueType` enum.

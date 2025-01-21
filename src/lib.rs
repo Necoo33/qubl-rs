@@ -1734,7 +1734,7 @@ pub enum QueryType {
 
 #[derive(Debug, Clone)]
 pub enum ValueType {
-    String(String), Datetime(String), Boolean(bool), Int32(i32), Int16(i16), Int8(i8), Int64(i64), Int128(i128),
+    String(String), Datetime(String), Null, Boolean(bool), Int32(i32), Int16(i16), Int8(i8), Int64(i64), Int128(i128),
     Uint8(u8), Uint16(u16), Uint32(u32), Uint64(u64), Usize(usize), Float32(f32), Float64(f64),
     EpochTime(i64),
 }
@@ -1747,6 +1747,7 @@ impl std::fmt::Display for ValueType {
                 "CURRENT_TIMESTAMP" | "UNIX_TIMESTAMP" | "CURRENT_DATE" | "CURRENT_TIME" | "NOW()" | "CURDATE()" | "CURTIME()" => write!(f, "{}", datetime),
                 _ => write!(f, "'{}'", datetime)
             },
+            ValueType::Null => write!(f, "NULL"),
             ValueType::Boolean(val) => write!(f, "{}", val),
             ValueType::Int8(val) => write!(f, "{}", val),
             ValueType::Int16(val) => write!(f, "{}", val),
