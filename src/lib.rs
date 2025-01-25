@@ -22,6 +22,11 @@ impl<'a> QueryBuilder<'a> {
     /// 
     /// ```
     pub fn select(fields: Vec<&str>) -> std::result::Result<Self, std::io::Error> {
+        match fields.len() {
+            0 => panic!("you cannot pass an empty vector to the fields argument"),
+            _ => ()
+        }
+
         let hq = Self::load_hqs();
         match Self::sanitize_columns(&fields, hq) {
             Ok(_) => {
@@ -122,6 +127,11 @@ impl<'a> QueryBuilder<'a> {
     /// 
     /// ```
     pub fn insert(columns: Vec<&str>, values: Vec<ValueType>) -> std::result::Result<Self, std::io::Error> {
+        match values.len() {
+            0 => panic!("you cannot pass an empty vector to the values argument"),
+            _ => ()
+        }
+
         let mut query = "INSERT INTO".to_string();
 
         let hq = Self::load_hqs();
@@ -301,6 +311,11 @@ impl<'a> QueryBuilder<'a> {
     ///     assert_eq!(query, "SELECT * FROM users WHERE id IN (1, 5, 10);")
     /// }
     pub fn where_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
         self.query = format!("{} WHERE {} IN (", self.query, column);
 
         let length_of_ins = ins.len();
@@ -332,6 +347,11 @@ impl<'a> QueryBuilder<'a> {
     ///     assert_eq!(query, "SELECT * FROM users WHERE id NOT IN (1, 5, 10);")
     /// }
      pub fn where_not_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
         self.query = format!("{} WHERE {} NOT IN (", self.query, column);
 
         let length_of_ins = ins.len();
@@ -564,6 +584,11 @@ impl<'a> QueryBuilder<'a> {
     /// 
     /// // it has more niche and different usages, for them check the tests.
     pub fn like(&mut self, columns: Vec<&str>, operand: &str) -> &mut Self {
+        match columns.len() {
+            0 => panic!("you cannot pass an empty vector to the columns"),
+            _ => ()
+        }
+
         let hqs = match self.hq {
             Some(hqs) => hqs,
             None => {
@@ -722,6 +747,11 @@ impl<'a> QueryBuilder<'a> {
     ///     assert_eq!(query, "SELECT * FROM users WHERE age > 25 ORDER BY FIELD(role, 'admin', 'member', 'observer') LIMIT 5 OFFSET 0;")
     /// }
     pub fn order_by_field(&mut self, column: &str, ordering: Vec<&str>) -> &mut Self {
+        match ordering.len() {
+            0 => panic!("you cannot pass an empty vector to the ordering argument"),
+            _ => ()
+        }
+
         match self.list.last() {
             Some(keyword) => match keyword {
                 KeywordList::OrderBy => {
@@ -1500,7 +1530,7 @@ impl TableBuilder {
         self
     }
 
-    /*pub fn default(&mut self, value: (&str, ValueType)) -> &mut Self {
+    pub fn default(&mut self, value: ValueType) -> &mut Self {
         let split_the_query = self.query.clone();
         let split_the_query = split_the_query.split(", ").collect::<Vec<&str>>();
 
@@ -1513,16 +1543,26 @@ impl TableBuilder {
            last_query.contains("BIGINT") ||
            last_query.contains("BIT") ||
            last_query.contains("SERIAL") {
-            match value.1 {
-                ValueType::Integer => self.query = format!("{} DEFAULT {}", self.query, value.0),
-                _ => panic!("Error: If your column has the of the types of INT, TINYINT, SMALLINT, MEDIUMINT, BIGINT, BIT or SERIAL, it has to be an integer.")
+            match value {
+                ValueType::Int8(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Int16(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Int32(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Int64(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Uint8(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Uint16(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Uint32(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Uint64(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Usize(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Float32(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                ValueType::Float64(int) => self.query = format!("{} DEFAULT {}", self.query, int),
+                _ => panic!("Error: If your column has the of the types of INT, TINYINT, SMALLINT, MEDIUMINT, BIGINT, BIT or SERIAL, it has to be an i8, i16, i32, i64, i128, usize, u8,  u16, u32, u64.")
             }
         }
 
         if last_query.contains("BOOL") || 
            last_query.contains("BOOLEAN") {
-            match value.1 {
-                ValueType::Boolean => self.query = format!("{} DEFAULT {}", self.query, value.0),
+            match value {
+                ValueType::Boolean(boolean) => self.query = format!("{} DEFAULT {}", self.query, boolean),
                 _ => panic!("If your column type is BOOLEAN, you have to write either true or false.")
             }    
         }
@@ -1535,22 +1575,22 @@ impl TableBuilder {
            last_query.contains("LONGTEXT") ||
            last_query.contains("BINARY") ||
            last_query.contains("VARBINARY") {
-            match value.1 {
-                ValueType::String => self.query = format!("{} DEFAULT '{}'", self.query, value.0),
+            match value {
+                ValueType::String(ref text) => self.query = format!("{} DEFAULT '{}'", self.query, text),
                 _ => panic!("Error: if your column type is one of the types of CHAR, VARCHAR, TEXT, TINYTEXT, MEDIUMTEXT, LONGTEXT, BINARY or VARBINARY, your value type has to be String.")
             }
         }
 
         if last_query.contains("DATETIME") ||
            last_query.contains("TIMESTAMP") {
-            match value.1 {
-                ValueType::String => self.query = format!("{} DEFAULT {}", self.query, value.0),
+            match value {
+                ValueType::Datetime(datetime) => self.query = format!("{} DEFAULT {}", self.query, datetime),
                 _ => panic!("Error: if your column type is one of the types of CHAR, VARCHAR, TEXT, TINYTEXT, MEDIUMTEXT, LONGTEXT, BINARY or VARBINARY, your value type has to be String.")
             }
         }
 
         self
-    }*/
+    }
 
     pub fn unique(&mut self) -> &mut Self {
         self.query = format!("{} UNIQUE", self.query);
@@ -1612,6 +1652,11 @@ impl TableBuilder {
     }
 
     pub fn enum_sql(&mut self, enum_vec: Vec<&str>) -> &mut Self {
+        match enum_vec.len() {
+            0 => panic!("enum_vec argument cannot be an empty vector"),
+            _ => ()
+        }
+        
         self.query = format!("{} ENUM(", self.query);
 
         let length_of_enum_vec = enum_vec.len();
@@ -1690,14 +1735,14 @@ impl TableBuilder {
         self
     }
 
-    /*pub fn default_on_null(&mut self, value: (&str, ValueType)) -> &mut Self {
-        match value.1 {
-            ValueType::String => self.query = format!("{} DEFAULT '{}' ON NULL", self.query, value.0),
-            _ => self.query = format!("{} DEFAULT {} ON NULL", self.query, value.0),
+    pub fn default_on_null(&mut self, value: ValueType) -> &mut Self {
+        match value {
+            ValueType::String(text) => self.query = format!("{} DEFAULT {} ON NULL", self.query, text),
+            _ => self.query = format!("{} DEFAULT {} ON NULL", self.query, value),
         }
 
         self
-    }*/
+    }
 
     pub fn invisible(&mut self) -> &mut Self {
         self.query = format!("{} INVISIBLE", self.query);

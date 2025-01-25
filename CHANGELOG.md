@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.3.0
+
+- Length check added for every vector that passed on builders. Now if you pass an empty vector to any of the builders any method, builders will be panicked.
+
 ## v2.2.0
 
 - Added Null value support for `QueryBuilder` struct.
