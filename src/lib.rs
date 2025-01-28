@@ -815,6 +815,104 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+
+    /// it adds the `UNION` keyword and its synthax. You can pass multiple queries to union with:
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let mut union_1 = QueryBuilder::select(vec!["name", "age", "id"]).unwrap();
+    ///     union_1.table("users").where_("age", ">", ValueType::Int32(7));
+    ///
+    ///     let union_2 = QueryBuilder::select(vec!["name", "age", "id"]).unwrap()
+    ///                                .table("users")
+    ///                                .where_("age", "<", ValueType::Int32(15))
+    ///                                .union(vec![union_1])
+    ///                                .finish();
+    ///
+    ///     assert_eq!(union_2, "(SELECT name, age, id FROM users WHERE age < 15) UNION (SELECT name, age, id FROM users WHERE age > 7);");
+    /// }
+    /// 
+    /// ```
+    pub fn union(&mut self, others: Vec<QueryBuilder<'_>>) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => {
+                match keyword {
+                    KeywordList::Union | KeywordList::UnionAll => {
+                        for other in others {
+                            self.query = format!("{} UNION ({})", self.query, other.query)
+                        }
+                    },
+                    _ => {
+                        self.query = format!("({})", self.query);
+                        
+                        for other in others {
+                            self.query = format!("{} UNION ({})", self.query, other.query)
+                        }
+                    }
+                }
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::Union);
+
+        self
+    }
+
+
+    /// it adds the `UNION` keyword and its synthax. You can pass multiple queries to union with:
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let mut union_1 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap();
+    ///     union_1.table("blogs").like(vec!["title"], "text");
+    ///
+    ///     let mut union_2 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap();
+    ///     union_2.table("blogs").like(vec!["description"], "some text");
+    ///
+    ///     let union_3 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap()
+    ///                                .table("blogs")
+    ///                                .where_("published", "=", ValueType::Boolean(true))
+    ///                                .union_all(vec![union_1, union_2])
+    ///                                .finish();
+    ///
+    ///     assert_eq!(union_3, "(SELECT id, title, description, published FROM blogs WHERE published = true) UNION ALL (SELECT id, title, description, published FROM blogs WHERE title LIKE '%text%') UNION ALL (SELECT id, title, description, published FROM blogs WHERE description LIKE '%some text%');");
+    /// }
+    /// 
+    /// ```
+    /// 
+    pub fn union_all(&mut self, others: Vec<QueryBuilder<'_>>) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => {
+                match keyword {
+                    KeywordList::Union | KeywordList::UnionAll => {
+                        for other in others {
+                            self.query = format!("{} UNION ALL ({})", self.query, other.query)
+                        }
+                    },
+                    _ => {
+                        self.query = format!("({})", self.query);
+                        
+                        for other in others {
+                            self.query = format!("{} UNION ALL ({})", self.query, other.query)
+                        }
+                    }
+                }
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::UnionAll);
+
+        self
+    }
+
     /// A wildcard method that gives you the chance to write a part of your query. Warning, it does not add any keyword to builder, i'll encourage to add proper keyword to it with `.append_keyword()` method for your custom query, otherwise you should continue building your query by yourself with that function, or you've to be prepared to encounter bugs.  
     /// 
     /// ```rust
@@ -1766,7 +1864,7 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains, Field
+    NotIn, JsonExtract, JsonContains, Field, Union, UnionAll
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -2202,5 +2300,33 @@ mod test {
         let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles).finish();
 
         assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
+    }
+
+    #[test]
+    pub fn test_unions(){
+        let mut union_1 = QueryBuilder::select(vec!["name", "age", "id"]).unwrap();
+        union_1.table("users").where_("age", ">", ValueType::Int32(7));
+
+        let union_2 = QueryBuilder::select(vec!["name", "age", "id"]).unwrap()
+                                                          .table("users")
+                                                          .where_("age", "<", ValueType::Int32(15))
+                                                          .union(vec![union_1])
+                                                          .finish();
+
+        assert_eq!(union_2, "(SELECT name, age, id FROM users WHERE age < 15) UNION (SELECT name, age, id FROM users WHERE age > 7);");
+
+        let mut union_1 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap();
+        union_1.table("blogs").like(vec!["title"], "text");
+
+        let mut union_2 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap();
+        union_2.table("blogs").like(vec!["description"], "some text");
+
+        let union_3 = QueryBuilder::select(vec!["id", "title", "description", "published"]).unwrap()
+                                                              .table("blogs")
+                                                              .where_("published", "=", ValueType::Boolean(true))
+                                                              .union_all(vec![union_1, union_2])
+                                                              .finish();
+
+        assert_eq!(union_3, "(SELECT id, title, description, published FROM blogs WHERE published = true) UNION ALL (SELECT id, title, description, published FROM blogs WHERE title LIKE '%text%') UNION ALL (SELECT id, title, description, published FROM blogs WHERE description LIKE '%some text%');");
     }
 }

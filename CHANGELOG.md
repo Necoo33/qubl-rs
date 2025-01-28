@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.4.0
+
+- Added `.union()` and `.union_all()` methods to `QueryBuilder` Struct. Added support for `Union` and `UnionAll` variants for `Keywordlist` Enum.
+
 ## v2.3.0
 
 - Length check added for every vector that passed on builders. Now if you pass an empty vector to any of the builders any method, builders will be panicked.
