@@ -2310,9 +2310,13 @@ mod test {
 
         assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
 
-        let field_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by_field("role", roles).order_by("id", "asc").finish();
+        let field_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by_field("role", roles.clone()).order_by("id", "asc").finish();
 
-        println!("{}", field_query_3);
+        assert_eq!(field_query_3, "SELECT * FROM users ORDER BY FIELD(role, 'admin', 'moderator', 'member', 'guest'), id ASC;");
+        
+        let field_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by_field("role", roles).order_by_field("status", vec!["active", "banned", "unverified"]).finish();
+
+        assert_eq!(field_query_4, "SELECT * FROM users ORDER BY FIELD(role, 'admin', 'moderator', 'member', 'guest'), FIELD(status, 'active', 'banned', 'unverified');");
     }
 
     #[test]
