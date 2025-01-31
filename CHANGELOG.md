@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.0
+
+- Support for ordering methods are improved: Now it supports `.order_by_field()` method before than `.order_by()` method and chaining of `.order_by_field()` methods.
+
 ## v2.4.0
 
 - Added `.union()` and `.union_all()` methods to `QueryBuilder` Struct. Added support for `Union` and `UnionAll` variants for `Keywordlist` Enum.

@@ -692,7 +692,7 @@ impl<'a> QueryBuilder<'a> {
 
         match self.list.last() {
             Some(keyword) => match keyword {
-                KeywordList::OrderBy => self.query = format!("{}, {} {}", self.query, column, ordering),
+                KeywordList::OrderBy | KeywordList::Field => self.query = format!("{}, {} {}", self.query, column, ordering),
                 _ => self.query = format!("{} ORDER BY {} {}", self.query, column, ordering)
             },
             None => panic!("It's almost impossible you to come here.")
@@ -758,6 +758,15 @@ impl<'a> QueryBuilder<'a> {
                     let mut split_the_query = self.query.split(" ORDER BY ");
                 
                     self.query = format!("{} ORDER BY {}, FIELD({}", split_the_query.nth(0).unwrap(), split_the_query.nth(0).unwrap(), column);
+
+                    for item in ordering {
+                        self.query = format!("{}, '{}'", self.query, item)
+                    }
+
+                    self.query = format!("{})", self.query);
+                },
+                KeywordList::Field => {
+                    self.query = format!("{}, FIELD({}", self.query, column);
 
                     for item in ordering {
                         self.query = format!("{}, '{}'", self.query, item)
@@ -2297,9 +2306,13 @@ mod test {
 
         assert_eq!(field_query_1, "SELECT * FROM users ORDER BY FIELD(role, 'admin', 'moderator', 'member', 'guest');");
 
-        let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles).finish();
+        let field_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by("id", "asc").order_by_field("role", roles.clone()).finish();
 
         assert_eq!(field_query_2, "SELECT * FROM users ORDER BY id ASC, FIELD(role, 'admin', 'moderator', 'member', 'guest');");
+
+        let field_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").order_by_field("role", roles).order_by("id", "asc").finish();
+
+        println!("{}", field_query_3);
     }
 
     #[test]
