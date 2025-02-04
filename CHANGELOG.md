@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.0
+
+- Implemented `Into` trait to `ValueType` enum.
+
 ## v2.5.0
 
 - Support for ordering methods are improved: Now it supports `.order_by_field()` method before than `.order_by()` method and chaining of `.order_by_field()` methods.

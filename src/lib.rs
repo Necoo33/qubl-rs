@@ -1933,6 +1933,428 @@ impl From<u64> for ValueType { fn from(value: u64) -> Self { ValueType::Uint64(v
 impl From<f32> for ValueType { fn from(value: f32) -> Self { ValueType::Float32(value) } }
 impl From<f64> for ValueType { fn from(value: f64) -> Self { ValueType::Float64(value) } }
 
+
+impl Into<String> for ValueType {
+    fn into(self) -> String {
+        match self {
+            ValueType::String(text) => text,
+            ValueType::Datetime(datetime) => datetime,
+            _ => panic!("you cannot convert a ValueType to string unless it's not a String or Datetime variant.")
+        }
+    }
+}
+
+/*
+            ValueType::Boolean(boolean) => boolean,
+            ValueType::Float32(float) => float,
+            ValueType::Float64(float) => float,
+*/
+
+impl Into<bool> for ValueType {
+    fn into(self) -> bool {
+        match self {
+            ValueType::Boolean(val) => val,
+            ValueType::String(text) => match text.as_str() {
+                "false" | "" | "\0" | "0" => false,
+                _ => true,
+            }
+            ValueType::Null => false,
+            ValueType::Int8(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Int16(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Int32(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Int64(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Int128(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Uint8(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Uint16(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Uint32(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Uint64(val) => match val == 0 {
+                false => true,
+                true => false
+            },
+            ValueType::Float32(val) => match val == 0.0 {
+                false => true,
+                true => false
+            },
+            ValueType::Float64(val) => match val == 0.0 {
+                false => true,
+                true => false
+            },
+            _ => panic!("invalid conversion")
+        }
+    }
+}
+
+impl Into<f32> for ValueType {
+    fn into(self) -> f32 {
+        match self {
+            ValueType::Float32(num) => num,
+            ValueType::Float64(num) => num as f32,
+            _ => panic!("invalid conversion")
+        }
+    }
+}
+
+impl Into<f64> for ValueType {
+    fn into(self) -> f64 {
+        match self {
+            ValueType::Float32(num) => num as f64,
+            ValueType::Float64(num) => num,
+            _ => panic!("invalid conversion")
+        }
+    }
+}
+
+impl Into<i8> for ValueType {
+    fn into(self) -> i8 {
+        match self {
+            ValueType::Int8(num) => num,
+            ValueType::Int16(num) => match num > 128 || num < -128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Int32(num) => match num > 128 || num < -128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Int64(num) => match num > 128 || num < -128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Int128(num) => match num > 128 || num < -128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            }
+            ValueType::Uint8(num) => match num > 128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Uint16(num) => match num > 128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Uint32(num) => match num > 128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Usize(num) => match num > 128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            ValueType::Uint64(num) => match num > 128 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i8
+            },
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<i16> for ValueType {
+    fn into(self) -> i16 {
+        match self {
+            ValueType::Int8(num) => num as i16,
+            ValueType::Int16(num) => num,
+            ValueType::Int32(num) => match num > 32_768 || num < -32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            ValueType::Int64(num) => match num > 32_768 || num < -32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            ValueType::Int128(num) => match num > 32_768 || num < -32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            }
+            ValueType::Uint8(num) => num as i16,
+            ValueType::Uint16(num) => match num > 32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            ValueType::Uint32(num) => match num > 32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            ValueType::Usize(num) => match num > 32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            ValueType::Uint64(num) => match num > 32_768 {
+                true => panic!("you cannot convert i16's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i16
+            },
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<i32> for ValueType {
+    fn into(self) -> i32 {
+        match self {
+            ValueType::Int8(num) => num as i32,
+            ValueType::Int16(num) => num as i32,
+            ValueType::Int32(num) => num,
+            ValueType::Int64(num) => match num > 2_147_483_647 || num < -2_147_483_647 {
+                true => panic!("you cannot convert i32's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i32
+            },
+            ValueType::Int128(num) => match num > 2_147_483_647 || num < -2_147_483_647 {
+                true => panic!("you cannot convert i32's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i32
+            }
+            ValueType::Uint8(num) => num as i32,
+            ValueType::Uint16(num) => num as i32,
+            ValueType::Uint32(num) => match num > 2_147_483_647 {
+                true => panic!("you cannot convert i32's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i32
+            },
+            ValueType::Usize(num) => match num > 2_147_483_647 {
+                true => panic!("you cannot convert i32's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i32
+            },
+            ValueType::Uint64(num) => match num > 2_147_483_647 {
+                true => panic!("you cannot convert i32's into a value which is bigger than the capacity of 32 bit values."),
+                false => num as i32
+            }
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<i64> for ValueType {
+    fn into(self) -> i64 {
+        match self {
+            ValueType::EpochTime(epoch) => epoch as i64,
+            ValueType::Int8(num) => num as i64,
+            ValueType::Int16(num) => num as i64,
+            ValueType::Int32(num) => num as i64,
+            ValueType::Int64(num) => num,
+            ValueType::Usize(num) => num as i64,
+            ValueType::Uint8(num) => num as i64,
+            ValueType::Uint16(num) => num as i64,
+            ValueType::Uint32(num) => num as i64,
+            ValueType::Uint64(num) => num as i64,
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<u8> for ValueType {
+    fn into(self) -> u8 {
+        match self {
+            ValueType::Uint8(num) => num,
+            ValueType::Uint16(num) => match num > 255 {
+                true => panic!("you cannot convert u16's if it's value is bigger than capacity of 8 bit values"),
+                false => num as u8
+            },
+            ValueType::Uint32(num) => match num > 255 {
+                true => panic!("you cannot convert u32's if it's value is bigger than capacity of 8 bit values"),
+                false => num as u8
+            },
+            ValueType::Uint64(num) => match num > 255 {
+                true => panic!("you cannot convert u64's if it's value is bigger than capacity of 8 bit values"),
+                false => num as u8
+            },
+            ValueType::Usize(num) => match num > 255 {
+                true => panic!("you cannot convert usizes if it's value is bigger than capacity of 8 bit values"),
+                false => num as u8
+            },
+            ValueType::Int8(num) => match num < 0 {
+                true => panic!("you cannot convert i8's if it's value is lower than 0"),
+                false => num as u8
+            },
+            ValueType::Int16(num) => match num < 0 || num > 255 {
+                true => panic!("you cannot convert i16's if it's value is lower than 0 or has a value which is bigger than capacity of 8 bit values."),
+                false => num as u8
+            },
+            ValueType::Int32(num) => match num < 0 || num > 255 {
+                true => panic!("you cannot convert i32's if it's value is lower than 0 or has a value which is bigger than capacity of 8 bit values."),
+                false => num as u8
+            },
+            ValueType::Int64(num) => match num < 0 || num > 255 {
+                true => panic!("you cannot convert 64's if it's value is lower than 0 or has a value which is bigger than capacity of 8 bit values."),
+                false => num as u8
+            },
+            ValueType::Int128(num) => match num < 0 || num > 255 {
+                true => panic!("you cannot convert i128's if it's value is lower than 0 or has a value which is bigger than capacity of 8 bit values."),
+                false => num as u8
+            }
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<u16> for ValueType {
+    fn into(self) -> u16 {
+        match self {
+            ValueType::Uint8(num) => num as u16,
+            ValueType::Uint16(num) => num,
+            ValueType::Uint32(num) => match num > 65_535 {
+                true => panic!("you cannot convert u32's if it's value is bigger than capacity of 32 bit values"),
+                false => num as u16
+            },
+            ValueType::Uint64(num) => match num > 65_535 {
+                true => panic!("you cannot convert u64's if it's value is bigger than capacity of 32 bit values"),
+                false => num as u16
+            },
+            ValueType::Usize(num) => match num > 65_535 {
+                true => panic!("you cannot convert usizes if it's value is bigger than capacity of 32 bit values"),
+                false => num as u16
+            },
+            ValueType::Int8(num) => match num < 0 {
+                true => panic!("you cannot convert i8's if it's value is lower than 0"),
+                false => num as u16
+            },
+            ValueType::Int16(num) => match num < 0 {
+                true => panic!("you cannot convert i16's if it's value is lower than 0"),
+                false => num as u16
+            },
+            ValueType::Int32(num) => match num < 0 || num > 65_535 {
+                true => panic!("you cannot convert i32's if it's value is lower than 0 or has a value which is bigger than capacity of 16 bit values."),
+                false => num as u16
+            },
+            ValueType::Int64(num) => match num < 0 || num > 65_535 {
+                true => panic!("you cannot convert i64's if it's value is lower than 0 or has a value which is bigger than capacity of 16 bit values."),
+                false => num as u16
+            },
+            ValueType::Int128(num) => match num < 0 || num > 65_535 {
+                true => panic!("you cannot convert i128's if it's value is lower than 0 or has a value which is bigger than capacity of 16 bit values."),
+                false => num as u16
+            }
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<u32> for ValueType {
+    fn into(self) -> u32 {
+        match self {
+            ValueType::Uint8(num) => num as u32,
+            ValueType::Uint16(num) => num as u32,
+            ValueType::Uint32(num) => num,
+            ValueType::Uint64(num) => match num > 4_294_967_295 {
+                true => panic!("you cannot convert u64's if it's value is bigger than capacity of 32 bit values"),
+                false => num as u32
+            },
+            ValueType::Usize(num) => match num > 4_294_967_295 {
+                true => panic!("you cannot convert usizes if it's value is bigger than capacity of 32 bit values"),
+                false => num as u32
+            },
+            ValueType::Int8(num) => match num < 0 {
+                true => panic!("you cannot convert i8's if it's value is lower than 0"),
+                false => num as u32
+            },
+            ValueType::Int16(num) => match num < 0 {
+                true => panic!("you cannot convert i16's if it's value is lower than 0"),
+                false => num as u32
+            },
+            ValueType::Int32(num) => match num < 0 {
+                true => panic!("you cannot convert i32's if it's value is lower than 0"),
+                false => num as u32
+            },
+            ValueType::Int64(num) => match num < 0 || num > 4_294_967_295 {
+                true => panic!("you cannot convert i64's if it's value is lower than 0 or has a value which is bigger than capacity of 32 bit values."),
+                false => num as u32
+            },
+            ValueType::Int128(num) => match num < 0 || num > 4_294_967_295 {
+                true => panic!("you cannot convert i128's if it's value is lower than 0 or has a value which is bigger than capacity of 32 bit values."),
+                false => num as u32
+            }
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<u64> for ValueType {
+    fn into(self) -> u64 {
+        match self {
+            ValueType::Usize(num) => num as u64,
+            ValueType::Uint8(num) => num as u64,
+            ValueType::Uint16(num) => num as u64,
+            ValueType::Uint32(num) => num as u64,
+            ValueType::Uint64(num) => num,
+            ValueType::Int8(num) => match num < 0 {
+                true => panic!("you cannot turn a negative value into u64"),
+                false => num as u64
+            },
+            ValueType::Int16(num) => match num < 0 {
+                true => panic!("you cannot turn a negative value into u64"),
+                false => num as u64
+            },
+            ValueType::Int32(num) => match num < 0 {
+                true => panic!("you cannot turn a negative value into u64"),
+                false => num as u64
+            },
+            ValueType::Int64(num) => match num < 0 {
+                true => panic!("you cannot turn a negative value into u64"),
+                false => num as u64
+            },
+            ValueType::Int128(num) => match num < 0 {
+                true => panic!("you cannot turn a negative value into u64"),
+                false => num as u64
+            },
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
+impl Into<usize> for ValueType {
+    fn into(self) -> usize {
+        match self {
+            ValueType::Int8(num) => match num < 0 {
+                true => panic!("you cannot convert negative numbers to usize"),
+                false => num as usize
+            },
+            ValueType::Int16(num) => match num < 0 {
+                true => panic!("you cannot convert negative numbers to usize"),
+                false => num as usize
+            },
+            ValueType::Int32(num) => match num < 0 {
+                true => panic!("you cannot convert negative numbers to usize"),
+                false => num as usize
+            },
+            ValueType::Int64(num) => match num < 0 {
+                true => panic!("you cannot convert negative numbers to usize"),
+                false => num as usize
+            },
+            ValueType::Int128(num) => match num < 0 {
+                true => panic!("you cannot convert negative numbers to usize"),
+                false => num as usize
+            },
+            ValueType::Usize(num) => num,
+            ValueType::Uint8(num) => num as usize,
+            ValueType::Uint16(num) => num as usize,
+            ValueType::Uint32(num) => num as usize,
+            ValueType::Uint64(num) => num as usize,
+            _ => panic!("you cannot convert non numeric values into numeric ones.")
+        }
+    }
+}
+
 /// Enum that benefits you to define what you want with a foreign key.
 #[derive(Debug, Clone)]
 pub enum ForeignKeyActions {
