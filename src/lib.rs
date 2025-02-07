@@ -1331,6 +1331,153 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// It applies "NOT JSON_CONTAINS()" mysql function with it's Synthax. If you encounter any syntactic bugs or deficiencies about that function, please report it via opening an issue.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let query = QueryBuilder::select(["*"].to_vec()).unwrap()
+    ///                              .table("users")
+    ///                              .where_("pic", "=", ValueType::String("".to_string()))
+    ///                              .not_json_contains("pic", ValueType::String("{{ \"name\": \"blablabla.jpg\"}}".to_string()), Some(".name"))
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, '{{ \"name\": \"blablabla.jpg\"}}', '$.name');")
+    /// }
+    /// 
+    /// ```
+    pub fn not_json_contains(&mut self, column: &str, needle: ValueType, path: Option<&str>) -> &mut Self {
+        match self.list.last().unwrap() {
+            KeywordList::Select => match path {
+                Some(path) => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
+                None => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}) FROM", column, needle)
+            },
+            KeywordList::Where => match path {
+                Some(path) => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path);
+                },
+                None => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle);
+                }
+            },
+            KeywordList::And => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => self.query = format!("{} AND NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path),
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            self.query = format!("{}AND NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => self.query = format!("{} AND NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle),
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            self.query = format!("{}AND NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle);
+                        }
+                    }
+                }
+            },
+            KeywordList::Or => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => self.query = format!("{} OR NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path),
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            self.query = format!("{}OR NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path);
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => self.query = format!("{} OR NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle),
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            self.query = format!("{}OR NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle);
+                        }
+                    }
+                }
+            },
+            _ => panic!("Wrong usage of '.json_contains()' method, it should be used later than either SELECT, WHERE, AND, OR keywords.")
+        }
+
+        self.list.push(KeywordList::JsonContains);
+
+        self
+    }
+
     /// finishes the query and returns the result as string.
     pub fn finish(&self) -> String {
         return format!("{};", self.query);

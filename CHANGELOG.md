@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.7.0
+
+- Added `.not_json_contains()` method to `QueryBuilder` enum.
+
 ## v2.6.0
 
 - Implemented `Into` trait to `ValueType` enum.
