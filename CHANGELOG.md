@@ -1,8 +1,14 @@
 # Changelog
 
+## v2.8.0
+
+- `JsonValue` enum added. It's meant to bu used to create json objects for using with json functions.
+- Breaking change: `.json_contains()` and `.not_json_contains()` method's arguments are changed. Now their second argument's type is `JsonValue`. Check the documentation examples about that.
+- `.json_array_append()` method added to the `QueryBuilder` struct. It's meant to be used with `update()` constructor for appending something to the columns that has Json type.
+
 ## v2.7.0
 
-- Added `.not_json_contains()` method to `QueryBuilder` enum.
+- Added `.not_json_contains()` method to `QueryBuilder` struct.
 
 ## v2.6.0
 

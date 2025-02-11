@@ -1188,20 +1188,25 @@ impl<'a> QueryBuilder<'a> {
     /// 
     /// ```rust
     /// 
-    /// use qubl::{QueryBuilder, ValueType};
+    /// use qubl::{QueryBuilder, ValueType, JsonValue};
     /// 
     /// fn main(){
+    ///     let value = ValueType::String("blablabla.jpg".to_string());
+    ///     let prop = vec![("name", &value)];
+    /// 
+    ///     let object = JsonValue::MysqlJsonObject(&prop);
+    /// 
     ///     let query = QueryBuilder::select(["*"].to_vec()).unwrap()
     ///                              .table("users")
     ///                              .where_("pic", "=", ValueType::String("".to_string()))
-    ///                              .json_contains("pic", ValueType::String("{{ \"name\": \"blablabla.jpg\"}}".to_string()), Some(".name"))
+    ///                              .json_contains("pic", object, Some(".name"))
     ///                              .finish();
     /// 
-    ///     assert_eq!(query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, '{{ \"name\": \"blablabla.jpg\"}}', '$.name');")
+    ///     assert_eq!(query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, JSON_OBJECT('name', 'blablabla.jpg'), '$.name');")
     /// }
     /// 
     /// ```
-    pub fn json_contains(&mut self, column: &str, needle: ValueType, path: Option<&str>) -> &mut Self {
+    pub fn json_contains(&mut self, column: &str, needle: JsonValue, path: Option<&str>) -> &mut Self {
         match self.list.last().unwrap() {
             KeywordList::Select => match path {
                 Some(path) => self.query = format!("SELECT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
@@ -1335,20 +1340,25 @@ impl<'a> QueryBuilder<'a> {
     /// 
     /// ```rust
     /// 
-    /// use qubl::{QueryBuilder, ValueType};
+    /// use qubl::{QueryBuilder, ValueType, JsonValue};
     /// 
     /// fn main(){
+    ///     let value = ValueType::String("blablabla.jpg".to_string());
+    ///     let prop = vec![("name", &value)];
+    /// 
+    ///     let object = JsonValue::MysqlJsonObject(&prop);
+    /// 
     ///     let query = QueryBuilder::select(["*"].to_vec()).unwrap()
     ///                              .table("users")
     ///                              .where_("pic", "=", ValueType::String("".to_string()))
-    ///                              .not_json_contains("pic", ValueType::String("{{ \"name\": \"blablabla.jpg\"}}".to_string()), Some(".name"))
+    ///                              .not_json_contains("pic", object, Some(".name"))
     ///                              .finish();
     /// 
-    ///     assert_eq!(query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, '{{ \"name\": \"blablabla.jpg\"}}', '$.name');")
+    ///     assert_eq!(query, "SELECT * FROM users WHERE NOT JSON_CONTAINS(pic, JSON_OBJECT('name', 'blablabla.jpg'), '$.name');")
     /// }
     /// 
     /// ```
-    pub fn not_json_contains(&mut self, column: &str, needle: ValueType, path: Option<&str>) -> &mut Self {
+    pub fn not_json_contains(&mut self, column: &str, needle: JsonValue, path: Option<&str>) -> &mut Self {
         match self.list.last().unwrap() {
             KeywordList::Select => match path {
                 Some(path) => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
@@ -1475,6 +1485,53 @@ impl<'a> QueryBuilder<'a> {
 
         self.list.push(KeywordList::JsonContains);
 
+        self
+    }
+
+    /// it adds `JSON_ARRAY_APPEND()` mysql function with it's synthax. It's intended to used with only update constructor, don't use it with any other kind of query.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType, JsonValue};
+    /// 
+    /// fn main () {
+    ///     let lesson = ("lesson", &ValueType::String("math".to_string()));
+    ///     let point = ("point", &ValueType::Int32(100));
+    ///
+    ///     let values = vec![lesson, point];
+    ///
+    ///     let object = JsonValue::MysqlJsonObject(&values);
+    ///
+    ///     let query = QueryBuilder::update().unwrap()
+    ///                                 .table("users")
+    ///                                 .json_array_append("points", Some(""), object.clone())
+    ///                                 .where_("id", "=", ValueType::Int8(1))
+    ///                                 .finish();
+    ///
+    ///     assert_eq!("UPDATE users SET points = JSON_ARRAY_APPEND(points, '$', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
+    /// }
+    /// 
+    /// ```
+    pub fn json_array_append(&mut self, column: &str, path: Option<&str>, object: JsonValue) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::Set => {
+                    match path {
+                        Some(path) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
+                        None => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
+                    }
+                },
+                _ => {
+                    match path {
+                        Some(path) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
+                        None => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
+                    }
+                }
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::JsonArrayAppend);
         self
     }
 
@@ -2020,7 +2077,7 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains, Field, Union, UnionAll
+    NotIn, JsonExtract, JsonContains, JsonArrayAppend, Field, Union, UnionAll
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -2035,13 +2092,14 @@ pub enum QueryType {
 pub enum ValueType {
     String(String), Datetime(String), Null, Boolean(bool), Int32(i32), Int16(i16), Int8(i8), Int64(i64), Int128(i128),
     Uint8(u8), Uint16(u16), Uint32(u32), Uint64(u64), Usize(usize), Float32(f32), Float64(f64),
-    EpochTime(i64),
+    EpochTime(i64), JsonString(String)
 }
 
 impl std::fmt::Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ValueType::String(string) => write!(f, "'{}'", string),
+            ValueType::JsonString(string) => write!(f, "\"{}\"", string),
             ValueType::Datetime(datetime) => match datetime.as_str() {
                 "CURRENT_TIMESTAMP" | "UNIX_TIMESTAMP" | "CURRENT_DATE" | "CURRENT_TIME" | "NOW()" | "CURDATE()" | "CURTIME()" => write!(f, "{}", datetime),
                 _ => write!(f, "'{}'", datetime)
@@ -2502,6 +2560,91 @@ impl Into<usize> for ValueType {
     }
 }
 
+/// Enum that benefits you to add json values to structs. They can be used with json functions.
+#[derive(Debug, Clone)]
+pub enum JsonValue<'a> {
+    Array(&'a Vec<ValueType>), Object(&'a Vec<(&'a str, &'a ValueType)>), ObjectArray(&'a Vec<Vec<(&'a str, &'a ValueType)>>), Initial(&'a ValueType), 
+    MysqlJsonObject(&'a Vec<(&'a str, &'a ValueType)>)
+}
+
+impl <'a>std::fmt::Display for JsonValue<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            JsonValue::Array(values) => {
+                let mut json_str = "[".to_string();
+
+                for (index, value) in values.iter().enumerate() {
+                    if index == 0 {
+                        json_str = format!("{}{}", json_str, value)
+                    } else {
+                        json_str = format!("{}, {}", json_str, value)
+                    }
+                }
+
+                json_str = format!("{}]", json_str);
+
+                write!(f, "{}", json_str)
+            },
+            JsonValue::Object(props) => {
+                let mut json_str = "{".to_string();
+
+                for (index, value) in props.iter().enumerate() {
+                    if index == 0 {
+                        json_str = format!("{}\"{}\": {}", json_str, value.0, value.1)
+                    } else {
+                        json_str = format!("{}, \"{}\": {}", json_str, value.0, value.1)
+                    }
+                }
+
+                json_str = format!("{}}}", json_str);
+
+                write!(f, "{}", json_str)
+            },
+            JsonValue::MysqlJsonObject(props) => {
+                let mut json_str = "JSON_OBJECT(".to_string();
+
+                for (index, value) in props.iter().enumerate() {
+                    if index == 0 {
+                        json_str = format!("{}'{}', {}", json_str, value.0, value.1)
+                    } else {
+                        json_str = format!("{}, '{}', {}", json_str, value.0, value.1)
+                    }
+                }
+
+                json_str = format!("{})", json_str);
+
+                write!(f, "{}", json_str)
+            },
+            JsonValue::ObjectArray(array) => {
+                let mut json_str = "[".to_string();
+
+                for (index1, object) in array.into_iter().enumerate() {
+                    let mut object_str = "{".to_string();
+
+                    for (index2, property) in object.into_iter().enumerate() {
+                        if index2 == 0 {
+                            object_str = format!("{}\"{}\": {}", object_str, property.0, property.1)
+                        } else {
+                            object_str = format!("{}, \"{}\": {}", object_str, property.0, property.1)
+                        }
+                    }
+
+                    object_str = format!("{}}}", object_str);
+
+                    if index1 == 0 {
+                        json_str = format!("{}{}", json_str, object_str)
+                    } else {
+                        json_str = format!("{}, {}", json_str, object_str)
+                    }
+                }
+
+                write!(f, "{}]", json_str)
+            },
+            JsonValue::Initial(value) => write!(f, "{}", value.to_string())
+        }
+    }
+}
+
 /// Enum that benefits you to define what you want with a foreign key.
 #[derive(Debug, Clone)]
 pub enum ForeignKeyActions {
@@ -2781,59 +2924,67 @@ mod test {
         // test with "select()" constructor:
 
         let ins = [ValueType::Int32(1), ValueType::Int32(5), ValueType::Int64(11)].to_vec();
-        let select_query = QueryBuilder::select(["*"].to_vec()).unwrap().json_contains("pic", ValueType::String("\"/files/hello.jpg\"".to_string()), Some(".path")).table("users").where_in("id", &ins).finish();
+        let select_query = QueryBuilder::select(["*"].to_vec()).unwrap().json_contains("pic", JsonValue::Initial(&ValueType::String("\"/files/hello.jpg\"".to_string())), Some(".path")).table("users").where_in("id", &ins).finish();
 
         assert_eq!(select_query, "SELECT JSON_CONTAINS(pic, '\"/files/hello.jpg\"', '$.path') FROM users WHERE id IN (1, 5, 11);".to_string());
-        
+
         // test with ".where_cond()" method:
 
-        let where_query = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("pic", "=", ValueType::String("".to_string())).json_contains("pic", ValueType::String("\"blablabla.jpg\"".to_string()), Some(".name")).finish();
+        let where_query = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("pic", "=", ValueType::String("".to_string())).json_contains("pic", JsonValue::Initial(&ValueType::String("\"blablabla.jpg\"".to_string())), Some(".name")).finish();
 
         assert_eq!(where_query, "SELECT * FROM users WHERE JSON_CONTAINS(pic, '\"blablabla.jpg\"', '$.name');".to_string());
 
-        // tests with ".and()" method:
-
-        let and_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let and_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
 
         assert_eq!(and_query_1, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
 
-        let and_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("class", "=", ValueType::String("5/c".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let and_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("class", "=", ValueType::String("5/c".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
 
         assert_eq!(and_query_2, "SELECT * FROM users WHERE age > 15 AND class = '5/c' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
         
-        let and_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("class", "=", ValueType::String("5/c".to_string())).and("surname", "=", ValueType::String("etiman".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let and_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("class", "=", ValueType::String("5/c".to_string())).and("surname", "=", ValueType::String("etiman".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
     
         assert_eq!(and_query_3, "SELECT * FROM users WHERE age > 15 AND class = '5/c'  AND surname = 'etiman' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
 
-        let and_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", ValueType::Int32(50), Some(".age")).and("surname", "=", ValueType::String("etiman".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float32(80.11), Some(".average_point")).finish();
+        let and_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", JsonValue::Initial(&ValueType::Int32(50)), Some(".age")).and("surname", "=", ValueType::String("etiman".to_string())).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float32(80.11)), Some(".average_point")).finish();
     
         assert_eq!(and_query_4, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(parents, 50, '$.age')  AND surname = 'etiman' AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
 
-        let and_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", ValueType::Int32(50), Some(".age")).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let and_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).and("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", JsonValue::Initial(&ValueType::Int32(50)), Some(".age")).and("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
     
         assert_eq!(and_query_5, "SELECT * FROM users WHERE age > 15 AND JSON_CONTAINS(parents, 50, '$.age') AND JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
         
-        // tests with ".or()" method:
-
-        let or_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float32(80.11), Some(".average_point")).finish();
+        let or_query_1 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float32(80.11)), Some(".average_point")).finish();
 
         assert_eq!(or_query_1, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
         
-        let or_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("class", "=", ValueType::String("5/c".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let or_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("class", "=", ValueType::String("5/c".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
         
         assert_eq!(or_query_2, "SELECT * FROM users WHERE age > 15 OR class = '5/c' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
                 
-        let or_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("class", "=", ValueType::String("5/c".to_string())).or("surname", "=", ValueType::String("etiman".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let or_query_3 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("class", "=", ValueType::String("5/c".to_string())).or("surname", "=", ValueType::String("etiman".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
             
         assert_eq!(or_query_3, "SELECT * FROM users WHERE age > 15 OR class = '5/c'  OR surname = 'etiman' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
         
-        let or_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", ValueType::Int32(50), Some(".age")).or("surname", "=", ValueType::String("etiman".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float64(80.11), Some(".average_point")).finish();
+        let or_query_4 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", JsonValue::Initial(&ValueType::Int32(50)), Some(".age")).or("surname", "=", ValueType::String("etiman".to_string())).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float64(80.11)), Some(".average_point")).finish();
             
         assert_eq!(or_query_4, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age')  OR surname = 'etiman' OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
         
-        let or_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", ValueType::Int64(50), Some(".age")).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", ValueType::Float32(80.11), Some(".average_point")).finish();
+        let or_query_5 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("age", ">", ValueType::Int32(15)).or("sdfgsdfg", "=", ValueType::String("".to_string())).json_contains("parents", JsonValue::Initial(&ValueType::Int64(50)), Some(".age")).or("asdfasdf", ">", ValueType::String("".to_string())).json_contains("graduation_stats", JsonValue::Initial(&ValueType::Float32(80.11)), Some(".average_point")).finish();
             
         assert_eq!(or_query_5, "SELECT * FROM users WHERE age > 15 OR JSON_CONTAINS(parents, 50, '$.age') OR JSON_CONTAINS(graduation_stats, 80.11, '$.average_point');".to_string());
+
+        let name = ValueType::JsonString("necdet".to_string());
+        let id = ValueType::Int32(1);
+        let is_active = ValueType::Boolean(true);
+
+        let object = vec![("name", &name), ("id", &id), ("isActive", &is_active)];
+
+        let mysql_json_object = JsonValue::MysqlJsonObject(&object);
+
+        let where_query_2 = QueryBuilder::select(["*"].to_vec()).unwrap().table("users").where_("pic", "=", ValueType::String("".to_string())).json_contains("pic", mysql_json_object, Some("")).finish();
+
+        assert_eq!("SELECT * FROM users WHERE JSON_CONTAINS(pic, JSON_OBJECT('name', \"necdet\", 'id', 1, 'isActive', true), '$');", where_query_2)
     }
 
     #[test]
@@ -2914,5 +3065,67 @@ mod test {
                                                               .finish();
 
         assert_eq!(union_3, "(SELECT id, title, description, published FROM blogs WHERE published = true) UNION ALL (SELECT id, title, description, published FROM blogs WHERE title LIKE '%text%') UNION ALL (SELECT id, title, description, published FROM blogs WHERE description LIKE '%some text%');");
+    }
+
+    #[test]
+    pub fn test_json_value(){
+        let name = ValueType::JsonString("necdet".to_string());
+        let age = ValueType::Int8(25);
+        let id = ValueType::Int32(1);
+
+        let values = vec![("name", &name), ("age", &age), ("id", &id)];
+
+        let json_object = JsonValue::Object(&values);
+
+        assert_eq!("{\"name\": \"necdet\", \"age\": 25, \"id\": 1}", json_object.to_string());
+
+        let mysql_json_object = JsonValue::MysqlJsonObject(&values);
+
+        assert_eq!("JSON_OBJECT('name', \"necdet\", 'age', 25, 'id', 1)", mysql_json_object.to_string());
+
+        let name2 = ValueType::JsonString("cevdet".to_string());
+        let age2 = ValueType::Int8(24);
+        let id2 = ValueType::Int32(2);
+
+        let name3 = ValueType::JsonString("serap".to_string());
+        let age3 = ValueType::Int8(21);
+        let id3 = ValueType::Int32(3);
+
+        let object1 = vec![("name", &name), ("age", &age), ("id", &id)];
+        let object2 = vec![("name", &name2), ("age", &age2), ("id", &id2)];
+        let object3 = vec![("name", &name3), ("age", &age3), ("id", &id3)];
+
+        let objects = vec![object1, object2, object3];
+        
+        let json_array = JsonValue::ObjectArray(&objects);
+
+        assert_eq!("[{\"name\": \"necdet\", \"age\": 25, \"id\": 1}, {\"name\": \"cevdet\", \"age\": 24, \"id\": 2}, {\"name\": \"serap\", \"age\": 21, \"id\": 3}]", json_array.to_string());
+    }
+
+    #[test]
+    pub fn test_json_array_append(){
+        let lesson = ("lesson", &ValueType::String("math".to_string()));
+        let point = ("point", &ValueType::Int32(100));
+
+        let values = vec![lesson, point];
+        
+        let object = JsonValue::MysqlJsonObject(&values);
+
+        let query = QueryBuilder::update().unwrap()
+                                         .table("users")
+                                         .json_array_append("points", Some(""), object.clone())
+                                         .where_("id", "=", ValueType::Int8(1))
+                                         .finish();
+
+        assert_eq!("UPDATE users SET points = JSON_ARRAY_APPEND(points, '$', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
+
+        let query = QueryBuilder::update().unwrap()
+                                         .table("users")
+                                         .set("status", ValueType::String("passed".to_string()))
+                                         .json_array_append("points", Some(""), object)
+                                         .where_("id", "=", ValueType::Int8(1))
+                                         .finish();
+
+        assert_eq!("UPDATE users SET status = 'passed', points = JSON_ARRAY_APPEND(points, '$', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
     }
 }
