@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.8.1
+
+- documentation update, nothing changed.
+
 ## v2.8.0
 
 - `JsonValue` enum added. It's meant to bu used to create json objects for using with json functions.

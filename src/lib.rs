@@ -2561,6 +2561,14 @@ impl Into<usize> for ValueType {
 }
 
 /// Enum that benefits you to add json values to structs. They can be used with json functions.
+/// That variants represents that kind of json values:
+/// 
+/// `Array` : ["hello", 21, "again"]
+/// Object: {"name": "necdet", "message": "hello", "id": 1}
+/// Object Array: [{"name": "necdet", "message": "hello", "id": 1}, {"name": "kemal", "message": "hi", "id": 2}]
+/// Initial: just same with `ValueType` enums.
+/// Mysql Json Object: It writes JSON_OBJECT() mysql function with it's synthax, such as: JSON_OBJECT('name', 'necdet', 'message', 'hello', 'id', 13)
+/// 
 #[derive(Debug, Clone)]
 pub enum JsonValue<'a> {
     Array(&'a Vec<ValueType>), Object(&'a Vec<(&'a str, &'a ValueType)>), ObjectArray(&'a Vec<Vec<(&'a str, &'a ValueType)>>), Initial(&'a ValueType), 
