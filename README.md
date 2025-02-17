@@ -10,11 +10,13 @@ It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `
 
 It supports that mysql functions: `FIELD()`, `COUNT()`, `RAND()`
 
-And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`, `JSON_ARRAY_APPEND()`
+And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`, `JSON_ARRAY_APPEND()`, `JSON_REMOVE()`
 
 ## Current Status
 
 This project has reached it's first major release, it never take a breaking change for a long time unless there is a breaking api change on rust standart liblary. In that release branch, we'll focused to add JSON functions mostly.
+
+Consider to give a like that liblary on github if you find it useful: [qubl-rs](https://github.com/Necoo33/qubl-rs)
 
 ## Examples
 
@@ -58,7 +60,7 @@ select_query.table("products");
 
 // do something:
 
-select_query.where_cond("price", "<", ValueType::Int32(250));
+select_query.where_("price", "<", ValueType::Int32(250));
 select_query.and("price", ">", ValueType::Int32(50));
 select_query.limit(10);
 select_query.offset(0);
@@ -76,7 +78,7 @@ Or, do it declarative way:
 
 // ...
 
-let finish_the_select_query = select_query.table("products").where_cond("price", "<", ValueType::Int32(250)).and("price", ">", ValueType::Int32(50)).limit(10).offset(0).finish();
+let finish_the_select_query = select_query.table("products").where_("price", "<", ValueType::Int32(250)).and("price", ">", ValueType::Int32(50)).limit(10).offset(0).finish();
 
 // ...
 
