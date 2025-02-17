@@ -1535,6 +1535,65 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it adds "JSON_REMOVE()" function with it's synthax. You cannot pass empty strings to paths.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main () {
+    ///   let query = QueryBuilder::update().unwrap()
+    ///                            .table("blogs")
+    ///                            .json_remove("likes", vec!["[10]"])
+    ///                            .where_("blog_id", "=", ValueType::Int32(20))
+    ///                            .finish();
+    ///
+    ///   assert_eq!(query, "UPDATE blogs SET likes = JSON_REMOVE(likes, '$[10]') WHERE blog_id = 20;");
+    /// }
+    /// 
+    /// ```
+    pub fn json_remove(&mut self, column: &str, paths: Vec<&str>) -> &mut Self {
+        match paths.iter().any(|path| *path == "") {
+            true => panic!("Error: a value in the paths cannot be empty string, panicking..."),
+            false => ()
+        }
+
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::Set => {
+                    self.query = format!("{}, {} = JSON_REMOVE({}", self.query, column, column);
+
+                    for path in paths {
+                        if path.starts_with("$") {
+                            self.query = format!("{}, '${}'", self.query, path.replace("$", ""))
+                        } else {
+                            self.query = format!("{}, '${}'", self.query, path)
+                        }
+                    }
+
+                    self.query = format!("{})", self.query)
+                },
+                _ => {
+                    self.query = format!("{} SET {} = JSON_REMOVE({}", self.query, column, column);
+
+                    for path in paths {
+                        if path.starts_with("$") {
+                            self.query = format!("{}, '${}'", self.query, path.replace("$", ""))
+                        } else {
+                            self.query = format!("{}, '${}'", self.query, path)
+                        }
+                    }
+
+                    self.query = format!("{})", self.query)
+                }
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::JsonRemove);
+        self
+    }
+
     /// finishes the query and returns the result as string.
     pub fn finish(&self) -> String {
         return format!("{};", self.query);
@@ -2077,7 +2136,7 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains, JsonArrayAppend, Field, Union, UnionAll
+    NotIn, JsonExtract, JsonContains, JsonArrayAppend, JsonRemove, Field, Union, UnionAll
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -2087,7 +2146,6 @@ pub enum QueryType {
 }
 
 /// ValueType enum. It benefits to detect and format the value with optimized way when you have to work with exact column values. 
-
 #[derive(Debug, Clone)]
 pub enum ValueType {
     String(String), Datetime(String), Null, Boolean(bool), Int32(i32), Int16(i16), Int8(i8), Int64(i64), Int128(i128),
@@ -2148,12 +2206,6 @@ impl Into<String> for ValueType {
         }
     }
 }
-
-/*
-            ValueType::Boolean(boolean) => boolean,
-            ValueType::Float32(float) => float,
-            ValueType::Float64(float) => float,
-*/
 
 impl Into<bool> for ValueType {
     fn into(self) -> bool {
@@ -2562,16 +2614,27 @@ impl Into<usize> for ValueType {
 
 /// Enum that benefits you to add json values to structs. They can be used with json functions.
 /// That variants represents that kind of json values:
-/// 
-/// `Array` : ["hello", 21, "again"]
-/// Object: {"name": "necdet", "message": "hello", "id": 1}
-/// Object Array: [{"name": "necdet", "message": "hello", "id": 1}, {"name": "kemal", "message": "hi", "id": 2}]
-/// Initial: just same with `ValueType` enums.
-/// Mysql Json Object: It writes JSON_OBJECT() mysql function with it's synthax, such as: JSON_OBJECT('name', 'necdet', 'message', 'hello', 'id', 13)
-/// 
 #[derive(Debug, Clone)]
 pub enum JsonValue<'a> {
-    Array(&'a Vec<ValueType>), Object(&'a Vec<(&'a str, &'a ValueType)>), ObjectArray(&'a Vec<Vec<(&'a str, &'a ValueType)>>), Initial(&'a ValueType), 
+    /// 
+    /// Example Value: ["hello", 21, "again"]
+    /// 
+    Array(&'a Vec<ValueType>), 
+    
+    /// 
+    /// Example Value: {"name": "necdet", "message": "hello", "id": 1}
+    /// 
+    Object(&'a Vec<(&'a str, &'a ValueType)>), 
+    
+    ///
+    /// example value: [{"name": "necdet", "message": "hello", "id": 1}, {"name": "kemal", "message": "hi", "id": 2}]
+    /// 
+    ObjectArray(&'a Vec<Vec<(&'a str, &'a ValueType)>>), 
+    
+    /// It's same with `ValueType` enums, just for simply passing it to that enum.
+    Initial(&'a ValueType), 
+
+    /// Mysql Json Object: It writes JSON_OBJECT() mysql function with it's synthax, such as: JSON_OBJECT('name', 'necdet', 'message', 'hello', 'id', 13). It's necessary or more accurate when working most of the json functions.
     MysqlJsonObject(&'a Vec<(&'a str, &'a ValueType)>)
 }
 
@@ -3135,5 +3198,25 @@ mod test {
                                          .finish();
 
         assert_eq!("UPDATE users SET status = 'passed', points = JSON_ARRAY_APPEND(points, '$', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
+    }
+
+    #[test]
+    pub fn test_json_remove() {
+        let query = QueryBuilder::update().unwrap()
+                                         .table("blogs")
+                                         .json_remove("likes", vec!["[10]"])
+                                         .where_("blog_id", "=", ValueType::Int32(20))
+                                         .finish();
+
+        assert_eq!(query, "UPDATE blogs SET likes = JSON_REMOVE(likes, '$[10]') WHERE blog_id = 20;");
+        
+        let query = QueryBuilder::update().unwrap()
+                                         .table("blogs")
+                                         .set("blabla", ValueType::Int32(50))
+                                         .json_remove("likes", vec!["[10]", "[11]", "[12]"])
+                                         .where_("blog_id", "=", ValueType::Int32(20))
+                                         .finish();
+
+        println!("{}", query)
     }
 }

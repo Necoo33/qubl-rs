@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.9.0
+
+- Added `.json_remove()` method to the `QueryBuilder` struct. It's meant to be used with `update()` constructor for removeng something from the columns that has Json type.
+- Some documentation fixes.
+
 ## v2.8.1
 
 - documentation update, nothing changed.
