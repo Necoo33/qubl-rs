@@ -1,12 +1,16 @@
 # Changelog
 
+## v2.10.0
+
+- Added `.json_set()` and `.json_replace()` methods with it's synthax. It's meant to be used with `update()` constructor for update something inside of the columns that has Json type.
+
 ## v2.9.1
 
 - Some documentation fixes on Readme file.
 
 ## v2.9.0
 
-- Added `.json_remove()` method to the `QueryBuilder` struct. It's meant to be used with `update()` constructor for removeng something from the columns that has Json type.
+- Added `.json_remove()` method to the `QueryBuilder` struct. It's meant to be used with `update()` constructor for removing something from the columns that has Json type.
 - Some documentation fixes.
 
 ## v2.8.1

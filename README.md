@@ -10,7 +10,7 @@ It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `
 
 It supports that mysql functions: `FIELD()`, `COUNT()`, `RAND()`
 
-And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`, `JSON_ARRAY_APPEND()`, `JSON_REMOVE()`
+And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`, `JSON_ARRAY_APPEND()`, `JSON_REMOVE()`, `JSON_SET()`, `JSON_REPLACE()`
 
 ## Current Status
 

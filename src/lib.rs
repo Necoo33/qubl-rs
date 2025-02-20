@@ -1594,6 +1594,80 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// It adds `JSON_SET()` function with it's synthax. It updates values with the specified path.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType, JsonValue};
+    /// 
+    /// fn main () {
+    /// 
+    /// let lesson = ("lesson", &ValueType::String("math".to_string()));
+    /// let point = ("point", &ValueType::Int32(100));
+    ///
+    /// let values = vec![lesson, point];
+    ///
+    /// let object = JsonValue::MysqlJsonObject(&values);
+    ///
+    /// let query = QueryBuilder::update().unwrap()
+    ///                          .table("users")
+    ///                          .json_set("points", "[0]", object)
+    ///                          .where_("id", "=", ValueType::Int32(1))
+    ///                          .finish();
+    ///
+    /// assert_eq!("UPDATE users SET points = JSON_SET(points, '$[0]', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
+    /// 
+    /// }
+    /// 
+    /// ```
+    pub fn json_set(&mut self, column: &str, path: &str, value: JsonValue) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::Set => self.query = format!("{}, {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value),
+                _ => self.query = format!("{} SET {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value)
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::JsonSet);
+        self
+    }
+
+    /// It adds `JSON_REPLACE()` function with it's synthax. It updates values with the specified path.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType, JsonValue};
+    /// 
+    /// fn main () {
+    /// 
+    /// let value = ValueType::Int32(100);
+    /// let value = JsonValue::Initial(&value);
+    ///
+    /// let query = QueryBuilder::update().unwrap()
+    ///                          .table("users")
+    ///                          .json_replace("points", "[0].point", value)
+    ///                          .where_("id", "=", ValueType::Int32(1))
+    ///                          .finish();
+    ///
+    /// assert_eq!("UPDATE users SET points = JSON_REPLACE(points, '$[0].point', 100) WHERE id = 1;", query)
+    /// 
+    /// }
+    /// 
+    /// ```
+    pub fn json_replace(&mut self, column: &str, path: &str, value: JsonValue) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                KeywordList::Set => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value),
+                _ => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value)
+            },
+            None => panic!("it's impossible to came here!")
+        }
+
+        self.list.push(KeywordList::JsonSet);
+        self
+    }
+
     /// finishes the query and returns the result as string.
     pub fn finish(&self) -> String {
         return format!("{};", self.query);
@@ -2136,7 +2210,8 @@ impl TableBuilder {
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains, JsonArrayAppend, JsonRemove, Field, Union, UnionAll
+    NotIn, JsonExtract, JsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
+    Field, Union, UnionAll
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -3218,5 +3293,34 @@ mod test {
                                          .finish();
 
         println!("{}", query)
+    }
+
+    #[test]
+    pub fn test_json_set(){
+        let lesson = ("lesson", &ValueType::String("math".to_string()));
+        let point = ("point", &ValueType::Int32(100));
+
+        let values = vec![lesson, point];
+        
+        let object = JsonValue::MysqlJsonObject(&values);
+
+        let query = QueryBuilder::update().unwrap()
+                                                        .table("users")
+                                                        .json_set("points", "[0]", object)
+                                                        .where_("id", "=", ValueType::Int32(1))
+                                                        .finish();
+
+        assert_eq!("UPDATE users SET points = JSON_SET(points, '$[0]', JSON_OBJECT('lesson', 'math', 'point', 100)) WHERE id = 1;", query);
+
+        let value = ValueType::Int32(100);
+        let value = JsonValue::Initial(&value);
+
+        let query = QueryBuilder::update().unwrap()
+                                         .table("users")
+                                         .json_replace("points", "[0].point", value)
+                                         .where_("id", "=", ValueType::Int32(1))
+                                         .finish();
+
+        assert_eq!("UPDATE users SET points = JSON_REPLACE(points, '$[0].point', 100) WHERE id = 1;", query)
     }
 }
