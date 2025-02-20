@@ -3296,7 +3296,7 @@ mod test {
     }
 
     #[test]
-    pub fn test_json_set(){
+    pub fn test_json_set_and_json_replace(){
         let lesson = ("lesson", &ValueType::String("math".to_string()));
         let point = ("point", &ValueType::Int32(100));
 
