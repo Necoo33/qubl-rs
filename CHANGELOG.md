@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.11.2
+
+- after i saw the some of the breaking aspects of that code, that fix removed for `ValueType::String()` and `ValueType::Datetime()` instances. If you want a text like '"something"' Than go with: `JsonValue::Initial(ValueType::JsonString("blabla"))`. Otherwise, Go with others.
+
 ## 2.11.1
 
 - Bugfix on previous update was unsuccessfull, this time it really fixed and put an example on tests.

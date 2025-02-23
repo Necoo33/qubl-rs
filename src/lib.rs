@@ -1212,8 +1212,8 @@ impl<'a> QueryBuilder<'a> {
                 Some(path) => match needle {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
-                        ValueType::String(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
-                        ValueType::Datetime(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
+                        ValueType::String(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '{}', '${}') FROM", column, needle, path),
+                        ValueType::Datetime(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '{}', '${}') FROM", column, needle, path),
                         _ => self.query = format!("SELECT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
                     },
                     _ => self.query = format!("SELECT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
@@ -1221,8 +1221,8 @@ impl<'a> QueryBuilder<'a> {
                 None => match needle {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
-                        ValueType::String(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
-                        ValueType::Datetime(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
+                        ValueType::String(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '{}') FROM", column, needle),
+                        ValueType::Datetime(needle) => self.query = format!("SELECT JSON_CONTAINS({}, '{}') FROM", column, needle),
                         _ => self.query = format!("SELECT JSON_CONTAINS({}, {}) FROM", column, needle)
                     },
                     _ => self.query = format!("SELECT JSON_CONTAINS({}, {}) FROM", column, needle)
@@ -1237,8 +1237,8 @@ impl<'a> QueryBuilder<'a> {
                     match needle {
                         JsonValue::Initial(initial) => match initial {
                             ValueType::JsonString(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
-                            ValueType::String(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
-                            ValueType::Datetime(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::String(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
                             _ => self.query = format!("{} WHERE JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
                         },
                         _ => self.query = format!("{} WHERE JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
@@ -1252,8 +1252,8 @@ impl<'a> QueryBuilder<'a> {
                     match needle {
                         JsonValue::Initial(initial) => match initial {
                             ValueType::JsonString(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
-                            ValueType::String(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
-                            ValueType::Datetime(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
+                            ValueType::String(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
                             _ => self.query = format!("{} WHERE JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
                         },
                         _ => self.query = format!("{} WHERE JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
@@ -1272,8 +1272,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::String(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::Datetime(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
                                 _ => self.query = format!("{} AND JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
                             },
                             _ => self.query = format!("{} AND JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
@@ -1292,8 +1292,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::String(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::Datetime(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
                                     _ => self.query = format!("{}AND JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
                                 },
                                 _ => self.query = format!("{}AND JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
@@ -1312,8 +1312,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::String(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::Datetime(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
                                 _ => self.query = format!("{} AND JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
                             },
                             _ => self.query = format!("{} AND JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
@@ -1332,8 +1332,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::String(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::Datetime(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
                                     _ => self.query = format!("{}AND JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}AND JSON_CONTAINS({}, {})", concatenated_string, column, needle)
@@ -1354,8 +1354,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::String(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::Datetime(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
                                 _ => self.query = format!("{} OR JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
                             },
                             _ => self.query = format!("{} OR JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
@@ -1374,8 +1374,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::String(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::Datetime(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
                                     _ => self.query = format!("{}OR JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
                                 },
                                 _ => self.query = format!("{}OR JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
@@ -1394,8 +1394,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::String(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::Datetime(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
                                 _ => self.query = format!("{} OR JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
                             },
                             _ => self.query = format!("{} OR JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
@@ -1414,8 +1414,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::String(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::Datetime(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
                                     _ => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle)
@@ -1460,8 +1460,8 @@ impl<'a> QueryBuilder<'a> {
                 Some(path) => match needle {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
-                        ValueType::String(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
-                        ValueType::Datetime(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"', '${}') FROM", column, needle, path),
+                        ValueType::String(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '{}', '${}') FROM", column, needle, path),
+                        ValueType::Datetime(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '{}', '${}') FROM", column, needle, path),
                         _ => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
                     },
                     _ => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}, '${}') FROM", column, needle, path),
@@ -1469,8 +1469,8 @@ impl<'a> QueryBuilder<'a> {
                 None => match needle {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
-                        ValueType::String(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
-                        ValueType::Datetime(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '\"{}\"') FROM", column, needle),
+                        ValueType::String(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '{}') FROM", column, needle),
+                        ValueType::Datetime(needle) => self.query = format!("SELECT NOT JSON_CONTAINS({}, '{}') FROM", column, needle),
                         _ => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}) FROM", column, needle)
                     },
                     _ => self.query = format!("SELECT NOT JSON_CONTAINS({}, {}) FROM", column, needle)
@@ -1485,8 +1485,8 @@ impl<'a> QueryBuilder<'a> {
                     match needle {
                         JsonValue::Initial(initial) => match initial {
                             ValueType::JsonString(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
-                            ValueType::String(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
-                            ValueType::Datetime(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::String(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
                             _ => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
                         },
                         _ => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
@@ -1500,8 +1500,8 @@ impl<'a> QueryBuilder<'a> {
                     match needle {
                         JsonValue::Initial(initial) => match initial {
                             ValueType::JsonString(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
-                            ValueType::String(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
-                            ValueType::Datetime(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
+                            ValueType::String(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
                             _ => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
                         },
                         _ => self.query = format!("{} WHERE NOT JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
@@ -1520,8 +1520,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::String(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::Datetime(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
                                 _ => self.query = format!("{} AND NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
                             },
                             _ => self.query = format!("{} AND NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
@@ -1540,8 +1540,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::String(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::Datetime(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
                                     _ => self.query = format!("{}AND NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
                                 },
                                 _ => self.query = format!("{}AND NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
@@ -1560,8 +1560,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::String(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::Datetime(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
                                 _ => self.query = format!("{} AND NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
                             },
                             _ => self.query = format!("{} AND NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
@@ -1580,8 +1580,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::String(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::Datetime(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
                                     _ => self.query = format!("{}AND NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}AND NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
@@ -1602,8 +1602,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::String(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
-                                ValueType::Datetime(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
                                 _ => self.query = format!("{} OR NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
                             },
                             _ => self.query = format!("{} OR NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
@@ -1622,8 +1622,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::String(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
-                                    ValueType::Datetime(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
                                     _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
                                 },
                                 _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
@@ -1642,8 +1642,8 @@ impl<'a> QueryBuilder<'a> {
                         2 => match needle {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::String(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
-                                ValueType::Datetime(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
                                 _ => self.query = format!("{} OR NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
                             },
                             _ => self.query = format!("{} OR NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
@@ -1662,8 +1662,8 @@ impl<'a> QueryBuilder<'a> {
                             match needle {
                                 JsonValue::Initial(initial) => match initial {
                                     ValueType::JsonString(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::String(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
-                                    ValueType::Datetime(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
                                     _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
@@ -1712,8 +1712,8 @@ impl<'a> QueryBuilder<'a> {
                         Some(path) => match object {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
-                                ValueType::String(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
-                                ValueType::Datetime(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
+                                ValueType::String(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', '{}')", self.query, column, column, path, object),
+                                ValueType::Datetime(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', '{}')", self.query, column, column, path, object),
                                 _ => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
                             },
                             _ => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
@@ -1721,8 +1721,8 @@ impl<'a> QueryBuilder<'a> {
                         None => match object {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
-                                ValueType::String(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
-                                ValueType::Datetime(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
+                                ValueType::String(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', '{}')", self.query, column, column, object),
+                                ValueType::Datetime(object) => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', '{}')", self.query, column, column, object),
                                 _ => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
                             },
                             _ => self.query = format!("{}, {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
@@ -1734,8 +1734,8 @@ impl<'a> QueryBuilder<'a> {
                         Some(path) => match object {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
-                                ValueType::String(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
-                                ValueType::Datetime(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', '\"{}\"')", self.query, column, column, path, object),
+                                ValueType::String(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', '{}')", self.query, column, column, path, object),
+                                ValueType::Datetime(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', '{}')", self.query, column, column, path, object),
                                 _ => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
                             },
                             _ => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '${}', {})", self.query, column, column, path, object),
@@ -1743,8 +1743,8 @@ impl<'a> QueryBuilder<'a> {
                         None => match object {
                             JsonValue::Initial(initial) => match initial {
                                 ValueType::JsonString(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
-                                ValueType::String(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
-                                ValueType::Datetime(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', '\"{}\"')", self.query, column, column, object),
+                                ValueType::String(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', '{}')", self.query, column, column, object),
+                                ValueType::Datetime(object) => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', '{}')", self.query, column, column, object),
                                 _ => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
                             },
                             _ => self.query = format!("{} SET {} = JSON_ARRAY_APPEND({}, '$', {})", self.query, column, column, object)
@@ -1850,8 +1850,8 @@ impl<'a> QueryBuilder<'a> {
                 KeywordList::Set => match value {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(value) => self.query = format!("{}, {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::String(value) => self.query = format!("{}, {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::Datetime(value) => self.query = format!("{}, {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
+                        ValueType::String(value) => self.query = format!("{}, {} = JSON_SET({}, '${}', '{}')", self.query, column, column, path, value),
+                        ValueType::Datetime(value) => self.query = format!("{}, {} = JSON_SET({}, '${}', '{}')", self.query, column, column, path, value),
                         _ => self.query = format!("{}, {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value),
                     },
                     _ => self.query = format!("{}, {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value),
@@ -1859,8 +1859,8 @@ impl<'a> QueryBuilder<'a> {
                 _ => match value {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(value) => self.query = format!("{} SET {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::String(value) => self.query = format!("{} SET {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::Datetime(value) => self.query = format!("{} SET {} = JSON_SET({}, '${}', '\"{}\"')", self.query, column, column, path, value),
+                        ValueType::String(value) => self.query = format!("{} SET {} = JSON_SET({}, '${}', '{}')", self.query, column, column, path, value),
+                        ValueType::Datetime(value) => self.query = format!("{} SET {} = JSON_SET({}, '${}', '{}')", self.query, column, column, path, value),
                         _ => self.query = format!("{} SET {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value)
                     },
                     _ => self.query = format!("{} SET {} = JSON_SET({}, '${}', {})", self.query, column, column, path, value)
@@ -1901,8 +1901,8 @@ impl<'a> QueryBuilder<'a> {
                 KeywordList::Set => match value {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(value) => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::String(value) => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::Datetime(value) => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
+                        ValueType::String(value) => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', '{}')", self.query, column, column, path, value),
+                        ValueType::Datetime(value) => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', '{}')", self.query, column, column, path, value),
                         _ => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value),
                     },
                     _ => self.query = format!("{}, {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value),
@@ -1910,8 +1910,8 @@ impl<'a> QueryBuilder<'a> {
                 _ => match value {
                     JsonValue::Initial(initial) => match initial {
                         ValueType::JsonString(value) => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::String(value) => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
-                        ValueType::Datetime(value) => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', '\"{}\"')", self.query, column, column, path, value),
+                        ValueType::String(value) => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', '{}')", self.query, column, column, path, value),
+                        ValueType::Datetime(value) => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', '{}')", self.query, column, column, path, value),
                         _ => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value)
                     },
                     _ => self.query = format!("{} SET {} = JSON_REPLACE({}, '${}', {})", self.query, column, column, path, value)
