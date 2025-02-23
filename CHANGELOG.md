@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.11.1
+
+- Bugfix on previous update was unsuccessfull, this time it really fixed and put an example on tests.
+
 ## v2.11.0
 
 - A bug fixed: In previous versions, when you pass `JsonValue::Initial()` with `ValueType::JsonString()` to the json function's arguments that has `JsonValue` type, the `QueryBuilder` were produce invalid query when you pass it to a string. With that release, that is fixed. Now when you pass either `ValueType::JsonString()`, `ValueType::String()` or `ValueType::Datetime()` to that functions with `JsonValue::Initial()` enum, your string will be wrapped by single quotes.
