@@ -409,6 +409,20 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it benefits to set timezone when you make your query. It's very flexible, always put on very beginning of the query, you can use it later than any other method.
+    pub fn time_zone(&mut self, timezone: Timezone) -> &mut Self {
+        self.query = format!("SET time_zone = {}; {}", timezone, self.query);
+
+        self
+    }
+
+    /// it benefits to set global timezone when you make your query. It's very flexible, always put on very beginning of the query, you can use it later than any other method.
+    pub fn global_time_zone(&mut self, timezone: Timezone) -> &mut Self {
+        self.query = format!("SET GLOBAL time_zone = {}; {}", timezone, self.query);
+
+        self
+    }
+
     /// It adds the "OR" keyword with it's synthax. Warning: It's not ready yet to chaining "AND" and "OR" keywords, for now, applying that kind of complex query use ".append_custom()" method instead.
     ///
     /// ```rust
@@ -3047,6 +3061,31 @@ impl <'a>std::fmt::Display for JsonValue<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Timezone {
+    System, Istanbul, Moscow, Kaliningrad, Samara, Ekaterinburg, Omsk, Krasnoyarsk, Irkutsk, Yakutsk,
+    Vladivostok, Magadan, Kamchatka, Shanghai, London, Paris, Berlin, Madrid, Rome, Amsterdam, Stockholm, Oslo,
+    Helsinki, Athens, NewYork, Chicago, Denver, LosAngeles, Anchorage, Honolulu, PuertoRico
+}
+
+impl std::fmt::Display for Timezone {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Timezone::System => write!(f, "SYSTEM"), Timezone::Istanbul => write!(f, "Europe/Istanbul"), Timezone::Moscow => write!(f, "Europe/Moscow"),
+            Timezone::Kaliningrad => write!(f, "Europe/Kaliningrad"), Timezone::Samara => write!(f, "Europe/Samara"), Timezone::Ekaterinburg => write!(f, "Asia/Yekaterinburg"),
+            Timezone::Omsk => write!(f, "Asia/Omsk"), Timezone::Krasnoyarsk => write!(f, "Asia/Krasnoyarsk"), Timezone::Irkutsk => write!(f, "Asia/Irkutsk"),
+            Timezone::Yakutsk => write!(f, "Asia/Yakutsk"), Timezone::Vladivostok => write!(f, "Asia/Vladivostok"), Timezone::Magadan => write!(f, "Asia/Magadan"),
+            Timezone::Kamchatka => write!(f, "Asia/Kamchatka"), Timezone::Shanghai => write!(f, "Asia/Shanghai"), Timezone::London => write!(f, "Europe/London"),
+            Timezone::Paris => write!(f, "Europe/Paris"), Timezone::Berlin => write!(f, "Europe/Berlin"), Timezone::Madrid => write!(f, "Europe/Madrid"),
+            Timezone::Rome => write!(f, "Europe/Rome"), Timezone::Amsterdam => write!(f, "Europe/Amsterdam"), Timezone::Stockholm => write!(f, "Europe/Stockholm"),
+            Timezone::Oslo => write!(f, "Europe/Oslo"), Timezone::Helsinki => write!(f, "Europe/Helsinki"), Timezone::Athens => write!(f, "Europe/Athens"),
+            Timezone::NewYork => write!(f, "America/New_York"), Timezone::Chicago => write!(f, "America/Chicago"), Timezone::Denver => write!(f, "America/Denver"),
+            Timezone::LosAngeles => write!(f, "America/Los_Angeles"), Timezone::Anchorage => write!(f, "America/Anchorage"), Timezone::Honolulu => write!(f, "Pacific/Honolulu"),
+            Timezone::PuertoRico => write!(f, "America/Puerto_Rico")
+        }
+    }
+}
+
 /// Enum that benefits you to define what you want with a foreign key.
 #[derive(Debug, Clone)]
 pub enum ForeignKeyActions {
@@ -3594,5 +3633,29 @@ mod test {
                                          .finish();
 
         assert_eq!("SELECT JSON_EXTRACT(points, '$[2]') AS point FROM students WHERE id = 5 AND JSON_CONTAINS(points, '\"chemistry\"', '$[0].name');", query);
+    }
+
+    #[test]
+    pub fn test_timezones(){
+        let query = QueryBuilder::select(vec!["*"]).unwrap().table("users").time_zone(Timezone::Istanbul).finish();
+
+        assert_eq!(query, "SET time_zone = Europe/Istanbul; SELECT * FROM users;");
+        
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                         .table("users")
+                                         .global_time_zone(Timezone::Amsterdam)
+                                         .where_("id", "=", ValueType::Int32(3))
+                                         .and("surname", "=", ValueType::String("Doe".to_string()))
+                                         .finish();
+
+        assert_eq!(query, "SET GLOBAL time_zone = Europe/Amsterdam; SELECT * FROM users WHERE id = 3 AND surname = 'Doe';");
+
+        let query = QueryBuilder::update().unwrap().table("users").time_zone(Timezone::NewYork).set("age", ValueType::Int32(26)).set("last_online_date", ValueType::Datetime("CURRENT_TIMESTAMP".to_string())).where_("id", "=", ValueType::Int32(234)).finish();
+
+        assert_eq!(query, "SET time_zone = America/New_York; UPDATE users SET age = 26, last_online_date = CURRENT_TIMESTAMP WHERE id = 234;");
+
+        let query = QueryBuilder::update().unwrap().table("users").set("age", ValueType::Int32(26)).global_time_zone(Timezone::NewYork).set("last_online_date", ValueType::Datetime("CURRENT_TIMESTAMP".to_string())).where_("id", "=", ValueType::Int32(234)).finish();
+
+        assert_eq!(query, "SET GLOBAL time_zone = America/New_York; UPDATE users SET age = 26, last_online_date = CURRENT_TIMESTAMP WHERE id = 234;")
     }
 }

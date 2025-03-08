@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.12
+
+- `Timezone` Enum added. It benefits to set query's timezone to a specific timezone.
+- For setting timezones, `.time_zone()` and `".global_time_zone()` methods are added to  `QueryBuilder` struct.
+
 ## 2.11.2
 
 - after i saw the some of the breaking aspects of that code, that fix removed for `ValueType::String()` and `ValueType::Datetime()` instances. If you want a text like '"something"' Than go with: `JsonValue::Initial(ValueType::JsonString("blabla"))`. Otherwise, Go with others.

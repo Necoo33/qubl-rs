@@ -1,13 +1,13 @@
 [package]
 name = "qubl-rs"
-version = "2.11.2"
+version = "2.12.0"
 edition = "2021"
 authors = ["Necdet Arda Etiman"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/Necoo33/qubl-rs"
 categories = ["database-implementations", "development-tools"]
-keywords = ["sql-query", "query-builder", "sql-queries", "build", "sql"]
+keywords = ["sql-query", "query-builder", "sql-queries", "query", "sql"]
 description = "Low level And flexible query builder that gives you full control of your queries."
 
 [lib]
