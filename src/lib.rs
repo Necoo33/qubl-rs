@@ -330,7 +330,7 @@ impl<'a> QueryBuilder<'a> {
             self.query = format!("{}{}, ", self.query, value);
         }
 
-        self.list.push(KeywordList::In);
+        self.list.push(KeywordList::WhereIn);
         self
     }
 
@@ -366,7 +366,7 @@ impl<'a> QueryBuilder<'a> {
             self.query = format!("{}{}, ", self.query, value);
         }
 
-        self.list.push(KeywordList::NotIn);
+        self.list.push(KeywordList::WhereNotIn);
         self
     }
 
@@ -385,7 +385,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn where_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} IN ({})", self.query, column, query);
 
-        self.list.push(KeywordList::In);
+        self.list.push(KeywordList::WhereIn);
         self
     }
 
@@ -404,7 +404,263 @@ impl<'a> QueryBuilder<'a> {
     pub fn where_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} WHERE {} NOT IN ({})", self.query, column, query);
 
-        self.list.push(KeywordList::NotIn);
+        self.list.push(KeywordList::WhereNotIn);
+
+        self
+    }
+
+
+    /// It adds the "IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .and_in("id", &ins)
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' AND id IN (1, 5, 10);")
+    /// }
+    pub fn and_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
+        self.query = format!("{} AND {} IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
+                    
+                continue;
+            }
+
+            self.query = format!("{}{}, ", self.query, value);
+        }
+
+        self.list.push(KeywordList::AndIn);
+        self
+    }
+
+
+    /// It adds the "NOT IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .and_not_in("id", &ins)
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' AND id NOT IN (1, 5, 10);")
+    /// }
+    pub fn and_not_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
+        self.query = format!("{} AND {} NOT IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
+                    
+                continue;
+            }
+
+            self.query = format!("{}{}, ", self.query, value);
+        }
+
+        self.list.push(KeywordList::AndNotIn);
+        self
+    }
+
+    /// It adds the "IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .and_in_custom("id", "1, 5, 10")
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' AND id IN (1, 5, 10);")
+    /// }
+    pub fn and_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
+        self.query = format!("{} AND {} IN ({})", self.query, column, query);
+
+        self.list.push(KeywordList::AndIn);
+        self
+    }
+
+    /// It adds the "IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .and_not_in_custom("id", "1, 5, 10")
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' AND id NOT IN (1, 5, 10);")
+    /// }
+    pub fn and_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
+        self.query = format!("{} AND {} NOT IN ({})", self.query, column, query);
+
+        self.list.push(KeywordList::AndNotIn);
+
+        self
+    }
+
+    /// It adds the "IN" keyword with it's synthax, with 'OR' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .or_in("id", &ins)
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' OR id IN (1, 5, 10);")
+    /// }
+    pub fn or_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
+        self.query = format!("{} OR {} IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
+                    
+                continue;
+            }
+
+            self.query = format!("{}{}, ", self.query, value);
+        }
+
+        self.list.push(KeywordList::AndIn);
+        self
+    }
+
+    /// It adds the "NOT IN" keyword with it's synthax, with 'OR' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .or_not_in("id", &ins)
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' OR id NOT IN (1, 5, 10);")
+    /// }
+    pub fn or_not_in(&mut self, column: &str, ins: &Vec<ValueType>) -> &mut Self {
+        match ins.len() {
+            0 => panic!("you cannot pass an empty vector to the ins argument"),
+            _ => ()
+        }
+
+        self.query = format!("{} OR {} NOT IN (", self.query, column);
+
+        let length_of_ins = ins.len();
+
+        for (index, value) in ins.into_iter().enumerate() {
+            if index + 1 == length_of_ins {
+                self.query = format!("{}{})", self.query, value);
+                    
+                continue;
+            }
+
+            self.query = format!("{}{}, ", self.query, value);
+        }
+
+        self.list.push(KeywordList::AndNotIn);
+        self
+    }
+
+    /// It adds the "IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .or_in_custom("id", "1, 5, 10")
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' OR id IN (1, 5, 10);")
+    /// }
+    pub fn or_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
+        self.query = format!("{} OR {} IN ({})", self.query, column, query);
+
+        self.list.push(KeywordList::AndIn);
+        self
+    }
+
+    /// It adds the "IN" keyword with it's synthax, with 'AND' keyword except 'WHERE'.
+    ///     
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){
+    ///     let ins = vec![ValueType::Int16(1), ValueType::Int64(5), ValueType::Int32(10)];
+    ///     let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                              .table("users")
+    ///                              .where_("class", "=", ValueType::String("10/c".to_string()))
+    ///                              .or_not_in_custom("id", "1, 5, 10")
+    ///                              .finish();
+    /// 
+    ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' OR id NOT IN (1, 5, 10);")
+    /// }
+    pub fn or_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
+        self.query = format!("{} OR {} NOT IN ({})", self.query, column, query);
+
+        self.list.push(KeywordList::AndNotIn);
 
         self
     }
@@ -413,6 +669,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn time_zone(&mut self, timezone: Timezone) -> &mut Self {
         self.query = format!("SET time_zone = {}; {}", timezone, self.query);
 
+        self.list.push(KeywordList::Timezone);
         self
     }
 
@@ -420,6 +677,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn global_time_zone(&mut self, timezone: Timezone) -> &mut Self {
         self.query = format!("SET GLOBAL time_zone = {}; {}", timezone, self.query);
 
+        self.list.push(KeywordList::GlobalTimezone);
         self
     }
 
@@ -628,7 +886,7 @@ impl<'a> QueryBuilder<'a> {
         
                 match self.list.last() {
                     Some(keyword) => {
-                        if keyword == &KeywordList::Where || keyword == &KeywordList::In || keyword == &KeywordList::NotIn {
+                        if keyword == &KeywordList::Where || keyword == &KeywordList::WhereIn || keyword == &KeywordList::WhereNotIn {
                             let length_of_columns = columns.len();
         
                             for (i, column) in columns.into_iter().enumerate() {
@@ -2479,9 +2737,9 @@ impl TableBuilder {
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
-    Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, In, 
-    NotIn, JsonExtract, JsonContains, NotJsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
-    Field, Union, UnionAll
+    Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, WhereIn, 
+    WhereNotIn, AndIn, AndNotIn, OrIn, OrNotIn, JsonExtract, JsonContains, NotJsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
+    Field, Union, UnionAll, Timezone, GlobalTimezone
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -3271,7 +3529,43 @@ mod test {
 
         let test_where_not_in_custom = QueryBuilder::select(columns).unwrap().table("users").where_not_in_custom("id", "1, 12, 8").finish();
 
-        assert_eq!(test_where_not_in_custom, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);")
+        assert_eq!(test_where_not_in_custom, "SELECT name, age, id, last_login FROM users WHERE id NOT IN (1, 12, 8);");
+
+        // test AND IN's
+
+        let columns = ["name", "id", "last_login"].to_vec();
+
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int64(8)].to_vec();
+
+        let test_and_in = QueryBuilder::select(columns).unwrap().table("users").where_("age", ">", ValueType::Int32(35)).and_in("id", &ids).finish();
+
+        assert_eq!(test_and_in, "SELECT name, id, last_login FROM users WHERE age > 35 AND id IN (1, 12, 8);");
+
+        let columns = ["name", "id", "last_login"].to_vec();
+
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int64(8)].to_vec();
+
+        let test_and_not_in = QueryBuilder::select(columns).unwrap().table("users").where_("age", ">", ValueType::Int32(35)).and_not_in("id", &ids).finish();
+
+        assert_eq!(test_and_not_in, "SELECT name, id, last_login FROM users WHERE age > 35 AND id NOT IN (1, 12, 8);");
+
+        // test OR IN's
+
+        let columns = ["name", "id", "last_login"].to_vec();
+
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int64(8)].to_vec();
+
+        let test_or_in = QueryBuilder::select(columns).unwrap().table("users").where_("age", ">", ValueType::Int32(35)).or_in("id", &ids).finish();
+
+        assert_eq!(test_or_in, "SELECT name, id, last_login FROM users WHERE age > 35 OR id IN (1, 12, 8);");
+
+        let columns = ["name", "id", "last_login"].to_vec();
+
+        let ids = [ValueType::Int32(1), ValueType::Int16(12), ValueType::Int64(8)].to_vec();
+
+        let test_or_not_in = QueryBuilder::select(columns).unwrap().table("users").where_("age", ">", ValueType::Int32(35)).or_not_in("id", &ids).finish();
+
+        assert_eq!(test_or_not_in, "SELECT name, id, last_login FROM users WHERE age > 35 OR id NOT IN (1, 12, 8);")
     }
 
     #[test]

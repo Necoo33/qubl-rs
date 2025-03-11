@@ -127,6 +127,8 @@ let delete_query = delete_query.finish();
 
 ```
 
+And there is tens of examples about how you can create very specific queries with absolute flexibility and type safety on that (https://github.com/Necoo33/qubl-rs/blob/02ee9d232c913fd4e9fc05cca4638cda3ceb0851/src/lib.rs#L3107)[link].
+
 ## Disclaimer
 
 But don't forget, this liblary is just builds that queries, not executes it. For that, you have to use a database driver or orm. And also this query builder fully focused on returning returning datas from databases, it doesn't have a aim for supporting logical operations via sql and we don't give any guarantee that you can do working logical queries with possibilities of that crate.

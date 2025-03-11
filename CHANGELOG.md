@@ -1,15 +1,19 @@
 # Changelog
 
-## 2.12
+## v2.13.0
 
-- `Timezone` Enum added. It benefits to set query's timezone to a specific timezone.
+- `.and_in()`, `.and_not_in()`, `.and_in_custom()`, `.and_not_in_custom()`, `.or_in()`, `.or_not_in()`, `.or_in_custom()`, `.or_not_in_custom()` methods added to `QueryBuilder` struct. That works same as their counterparts, such as `.where_in()`, `.where_not_in()` etc.
+
+## v2.12.0
+
+- `Timezone` Enum added. It benefits to set query's timezone to a specific timezone. For now, it only supports American, Russian, European, Turkish And Chinese Timezones.
 - For setting timezones, `.time_zone()` and `".global_time_zone()` methods are added to  `QueryBuilder` struct.
 
-## 2.11.2
+## v2.11.2
 
 - after i saw the some of the breaking aspects of that code, that fix removed for `ValueType::String()` and `ValueType::Datetime()` instances. If you want a text like '"something"' Than go with: `JsonValue::Initial(ValueType::JsonString("blabla"))`. Otherwise, Go with others.
 
-## 2.11.1
+## v2.11.1
 
 - Bugfix on previous update was unsuccessfull, this time it really fixed and put an example on tests.
 
