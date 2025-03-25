@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.14.0
+
+- Added support for Arabic and all remaining American Continent provinces to `Timezone` enum.
+
 ## v2.13.0
 
 - `.and_in()`, `.and_not_in()`, `.and_in_custom()`, `.and_not_in_custom()`, `.or_in()`, `.or_not_in()`, `.or_in_custom()`, `.or_not_in_custom()` methods added to `QueryBuilder` struct. That works same as their counterparts, such as `.where_in()`, `.where_not_in()` etc.

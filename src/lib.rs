@@ -3319,11 +3319,18 @@ impl <'a>std::fmt::Display for JsonValue<'a> {
     }
 }
 
+/// Timezones with Unix Timezone format, Can be used for setting timezone manually.
+/// It covers european, russian, north american, south american, arabic countries. In next releases, we'll cover other african, asian and pacific timezones. 
 #[derive(Debug, Clone)]
 pub enum Timezone {
     System, Istanbul, Moscow, Kaliningrad, Samara, Ekaterinburg, Omsk, Krasnoyarsk, Irkutsk, Yakutsk,
     Vladivostok, Magadan, Kamchatka, Shanghai, London, Paris, Berlin, Madrid, Rome, Amsterdam, Stockholm, Oslo,
-    Helsinki, Athens, NewYork, Chicago, Denver, LosAngeles, Anchorage, Honolulu, PuertoRico
+    Helsinki, Athens, NewYork, Chicago, Denver, LosAngeles, Anchorage, Honolulu, PuertoRico, Riyadh, Dubai, Qatar,
+    Kuwait, Bahrain, Muscat, Aden, Baghdad, Amman, Beirut, Damascus, Gaza, Hebron, Cairo, Khartoum, Tripoli,
+    Tunis, BuenosAires, LaPaz, SaoPaulo, Manaus, Recife, Cuiaba, PortoVelho, Santiago, Easter, Bogota, Guayaquil,
+    Galapagos, Guyana, Asuncion, Lima, Paramaribo, Montevideo, Caracas, StJohns, Halifax, Toronto, Winnipeg,
+    Edmonton, Vancouver, WhiteHorse, MexicoCity, Mazatlan, Chihuahua, Tijuana, Cancun, Belize, CostaRica, ElSalvador,
+    Guatemala, Tegucigalpa, Managua, Panama
 }
 
 impl std::fmt::Display for Timezone {
@@ -3339,7 +3346,22 @@ impl std::fmt::Display for Timezone {
             Timezone::Oslo => write!(f, "Europe/Oslo"), Timezone::Helsinki => write!(f, "Europe/Helsinki"), Timezone::Athens => write!(f, "Europe/Athens"),
             Timezone::NewYork => write!(f, "America/New_York"), Timezone::Chicago => write!(f, "America/Chicago"), Timezone::Denver => write!(f, "America/Denver"),
             Timezone::LosAngeles => write!(f, "America/Los_Angeles"), Timezone::Anchorage => write!(f, "America/Anchorage"), Timezone::Honolulu => write!(f, "Pacific/Honolulu"),
-            Timezone::PuertoRico => write!(f, "America/Puerto_Rico")
+            Timezone::PuertoRico => write!(f, "America/Puerto_Rico"), Timezone::Riyadh => write!(f, "Asia/Riyadh"), Timezone::Dubai => write!(f, "Asia/Dubai"),
+            Timezone::Qatar => write!(f, "Asia/Qatar"), Timezone::Kuwait => write!(f, "Asia/Kuwait"), Timezone::Bahrain => write!(f, "Asia/Bahrain"), Timezone::Muscat => write!(f, "Asia/Muscat"),
+            Timezone::Aden => write!(f, "Asia/Aden"), Timezone::Baghdad => write!(f, "Asia/Baghdad"), Timezone::Amman => write!(f, "Asia/Amman"), Timezone::Beirut => write!(f, "Asia/Beirut"),
+            Timezone::Damascus => write!(f, "Asia/Damascus"), Timezone::Gaza => write!(f, "Asia/Gaza"), Timezone::Hebron => write!(f, "Asia/Hebron"), Timezone::Cairo => write!(f, "Africa/Cairo"),
+            Timezone::Khartoum => write!(f, "Africa/Khartoum"), Timezone::Tripoli => write!(f, "Africa/Tripoli"), Timezone::Tunis => write!(f, "Africa/Tunis"),
+            Timezone::BuenosAires => write!(f, "America/Argentina/Buenos_Aires"), Timezone::LaPaz => write!(f, "America/La_Paz"), Timezone::SaoPaulo => write!(f, "America/Sao_Paulo"),
+            Timezone::Manaus => write!(f, "America/Manaus"), Timezone::Recife => write!(f, "America/Recife"), Timezone::Cuiaba => write!(f, "America/Cuiaba"), Timezone::PortoVelho => write!(f, "America/Porto_Velho"),
+            Timezone::Santiago => write!(f, "America/Santiago"), Timezone::Easter => write!(f, "Pacific/Easter"), Timezone::Bogota => write!(f, "America/Bogota"), Timezone::Guayaquil => write!(f, "America/Guayaquil"),
+            Timezone::Galapagos => write!(f, "Pacific/Galapagos"), Timezone::Guyana => write!(f, "America/Guyana"), Timezone::Asuncion => write!(f, "America/Asuncion"), Timezone::Lima => write!(f, "America/Lima"),
+            Timezone::Paramaribo => write!(f, "America/Paramaribo"), Timezone::Montevideo => write!(f, "America/Montevideo"), Timezone::Caracas => write!(f, "America/Caracas"),
+            Timezone::StJohns => write!(f, "America/St_Johns"), Timezone::Halifax => write!(f, "America/Halifax"), Timezone::Toronto => write!(f, "America/Toronto"), Timezone::Winnipeg => write!(f, "America/Winnipeg"),
+            Timezone::Edmonton => write!(f, "America/Edmonton"), Timezone::Vancouver => write!(f, "America/Vancouver"), Timezone::WhiteHorse => write!(f, "America/Whitehorse"),
+            Timezone::MexicoCity => write!(f, "America/Mexico_City"), Timezone::Mazatlan => write!(f, "America/Mazatlan"), Timezone::Chihuahua => write!(f, "America/Chihuahua"),
+            Timezone::Tijuana => write!(f, "America/Tijuana"), Timezone::Cancun => write!(f, "America/Cancun"), Timezone::Belize => write!(f, "America/Belize"), Timezone::CostaRica => write!(f, "America/Costa_Rica"),
+            Timezone::ElSalvador => write!(f, "America/El_Salvador"), Timezone::Guatemala => write!(f, "America/Guatemala"), Timezone::Tegucigalpa => write!(f, "America/Tegucigalpa"),
+            Timezone::Managua => write!(f, "America/Managua"), Timezone::Panama => write!(f, "America/Panama")
         }
     }
 }

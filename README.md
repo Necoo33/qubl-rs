@@ -127,7 +127,7 @@ let delete_query = delete_query.finish();
 
 ```
 
-And there is tens of examples about how you can create very specific queries with absolute flexibility and type safety on that (https://github.com/Necoo33/qubl-rs/blob/02ee9d232c913fd4e9fc05cca4638cda3ceb0851/src/lib.rs#L3107)[link].
+And there is tens of examples about how you can create very specific queries with absolute flexibility and type safety on that [link](https://github.com/Necoo33/qubl-rs/blob/02ee9d232c913fd4e9fc05cca4638cda3ceb0851/src/lib.rs#L3107).
 
 ## Disclaimer
 
