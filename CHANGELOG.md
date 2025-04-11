@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.15.0
+
+- `.set_timezone()` and `.set_global_timezone()` methods are changed, in previous version their way of work is failed last test, now it passes.
+- Way of work of `NULL` variant of `ValueType` enum with `mark` arguments are changed, now it changes all `=` operands with `IS` and `!=` & `<>` operands with `IS NOT`. If you add this kind of query: `query.where_("pic", "!=", ValueType::Null)` it transforms it to that: `... WHERE pic IS NOT NULL`.
+
 ## v2.14.0
 
 - Added support for Arabic and all remaining American Continent provinces to `Timezone` enum.

@@ -270,7 +270,7 @@ impl<'a> QueryBuilder<'a> {
     /// }
     /// 
     /// ```
-    pub fn where_(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+    pub fn where_(&mut self, column: &str, mut mark: &str, value: ValueType) -> &mut Self {
         match Self::sanitize_mark(mark) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
@@ -289,6 +289,15 @@ impl<'a> QueryBuilder<'a> {
         match self.sanitize_input(&value) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
+        }
+
+        if let ValueType::Null = value {
+            match mark {
+                "=" => mark = "IS",
+                "!=" | "<>" => mark = "IS NOT",
+                "IS" | "IS NOT" => (),
+                _ => mark = "IS"
+            }
         }
 
         self.query = format!("{} WHERE {} {} {}", self.query, column, mark, value);
@@ -669,7 +678,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn time_zone(&mut self, timezone: Timezone) -> &mut Self {
         self.query = format!("SET time_zone = {}; {}", timezone, self.query);
 
-        self.list.push(KeywordList::Timezone);
+        self.list.insert(1, KeywordList::Timezone);
         self
     }
 
@@ -677,7 +686,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn global_time_zone(&mut self, timezone: Timezone) -> &mut Self {
         self.query = format!("SET GLOBAL time_zone = {}; {}", timezone, self.query);
 
-        self.list.push(KeywordList::GlobalTimezone);
+        self.list.insert(1, KeywordList::GlobalTimezone);
         self
     }
 
@@ -693,7 +702,7 @@ impl<'a> QueryBuilder<'a> {
     /// 
     ///     assert_eq!(query, "SELECT * FROM users WHERE id = 10 OR name = 'necdet';")
     /// }
-   pub fn or(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+   pub fn or(&mut self, column: &str, mut mark: &str, value: ValueType) -> &mut Self {
         match self.sanitize_column(column) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
@@ -707,6 +716,15 @@ impl<'a> QueryBuilder<'a> {
         match self.sanitize_input(&value) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
+        }
+
+        if let ValueType::Null = value {
+            match mark {
+                "=" => mark = "IS",
+                "!=" | "<>" => mark = "IS NOT",
+                "IS" | "IS NOT" => (),
+                _ => mark = "IS"
+            }
         }
 
         self.query = format!("{} OR {} {} {}", self.query, column, mark, value);
@@ -777,7 +795,7 @@ impl<'a> QueryBuilder<'a> {
     /// 
     ///     assert_eq!(query, "SELECT * FROM users WHERE id = 10 AND name = 'necdet';")
     /// }
-    pub fn and(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+    pub fn and(&mut self, column: &str, mut mark: &str, value: ValueType) -> &mut Self {
         match self.sanitize_column(column) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
@@ -791,6 +809,15 @@ impl<'a> QueryBuilder<'a> {
         match self.sanitize_input(&value) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
+        }
+
+        if let ValueType::Null = value {
+            match mark {
+                "=" => mark = "IS",
+                "!=" | "<>" => mark = "IS NOT",
+                "IS" | "IS NOT" => (),
+                _ => mark = "IS"
+            }
         }
 
         self.query = format!("{} AND {} {} {}", self.query, column, mark, value);
@@ -1073,7 +1100,7 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    pub fn having(&mut self, column: &str, mark: &str, value: ValueType) -> &mut Self {
+    pub fn having(&mut self, column: &str, mut mark: &str, value: ValueType) -> &mut Self {
         match self.sanitize_column(column) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
@@ -1087,6 +1114,15 @@ impl<'a> QueryBuilder<'a> {
         match self.sanitize_input(&value) {
             Ok(_) => (),
             Err(error) => panic!("{}", error)
+        }
+
+        if let ValueType::Null = value {
+            match mark {
+                "=" => mark = "IS",
+                "!=" | "<>" => mark = "IS NOT",
+                "IS" | "IS NOT" => (),
+                _ => mark = "IS"
+            }
         }
 
         self.query = format!("{} HAVING {} {} {}", self.query, column, mark, value);
@@ -3972,6 +4008,6 @@ mod test {
 
         let query = QueryBuilder::update().unwrap().table("users").set("age", ValueType::Int32(26)).global_time_zone(Timezone::NewYork).set("last_online_date", ValueType::Datetime("CURRENT_TIMESTAMP".to_string())).where_("id", "=", ValueType::Int32(234)).finish();
 
-        assert_eq!(query, "SET GLOBAL time_zone = America/New_York; UPDATE users SET age = 26, last_online_date = CURRENT_TIMESTAMP WHERE id = 234;")
+        assert_eq!(query, "SET GLOBAL time_zone = America/New_York; UPDATE users SET age = 26, last_online_date = CURRENT_TIMESTAMP WHERE id = 234;");
     }
 }
