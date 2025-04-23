@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.16.0
+
+- `.inner_join()` method added to `QueryBuilder` type.
+- Added support for all remaining Pacific Continent Timezonse to `Timezone` enum.
+
 ## v2.15.0
 
 - `.set_timezone()` and `.set_global_timezone()` methods are changed, in previous version their way of work is failed last test, now it passes.

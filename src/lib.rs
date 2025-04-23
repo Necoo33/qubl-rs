@@ -1132,6 +1132,12 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    pub fn inner_join(&mut self, table: &str, left: &str, mark: &str, right: &str) -> &mut Self {
+        self.query = format!("{} INNER JOIN {} ON {} {} {}", self.query, table, left, mark, right);
+        self.list.push(KeywordList::InnerJoin);
+        self
+    }
+
 
     /// it adds the `UNION` keyword and its synthax. You can pass multiple queries to union with:
     /// 
@@ -2775,7 +2781,7 @@ pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, WhereIn, 
     WhereNotIn, AndIn, AndNotIn, OrIn, OrNotIn, JsonExtract, JsonContains, NotJsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
-    Field, Union, UnionAll, Timezone, GlobalTimezone
+    Field, Union, UnionAll, Timezone, GlobalTimezone, InnerJoin
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -3356,7 +3362,7 @@ impl <'a>std::fmt::Display for JsonValue<'a> {
 }
 
 /// Timezones with Unix Timezone format, Can be used for setting timezone manually.
-/// It covers european, russian, north american, south american, arabic countries. In next releases, we'll cover other african, asian and pacific timezones. 
+/// It covers european, russian, north american, south american, arabic countries. In next releases, we'll cover other african and asian timezones. 
 #[derive(Debug, Clone)]
 pub enum Timezone {
     System, Istanbul, Moscow, Kaliningrad, Samara, Ekaterinburg, Omsk, Krasnoyarsk, Irkutsk, Yakutsk,
@@ -3366,7 +3372,10 @@ pub enum Timezone {
     Tunis, BuenosAires, LaPaz, SaoPaulo, Manaus, Recife, Cuiaba, PortoVelho, Santiago, Easter, Bogota, Guayaquil,
     Galapagos, Guyana, Asuncion, Lima, Paramaribo, Montevideo, Caracas, StJohns, Halifax, Toronto, Winnipeg,
     Edmonton, Vancouver, WhiteHorse, MexicoCity, Mazatlan, Chihuahua, Tijuana, Cancun, Belize, CostaRica, ElSalvador,
-    Guatemala, Tegucigalpa, Managua, Panama
+    Guatemala, Tegucigalpa, Managua, Panama, Apia, Auckland, Bougainville, Chatham, Efate, Enderbury, Fakaofo,
+    Fiji, Funafuti, Gambier, Guadalcanal, Guam, Johnston, Kanton, Kiritimati, Kosrae, Kwajalein, Majuro, Marquesas,
+    Midway, Nauru, Niue, Norfolk, Noumea, PagoPago, Palau, Pitcairn, Pohnpei, PortMoresby, Saipan, Rarotonga, Tahiti,
+    Tarawa, Truk, Wake, Wallis, Yap, Tongatapu
 }
 
 impl std::fmt::Display for Timezone {
@@ -3397,7 +3406,20 @@ impl std::fmt::Display for Timezone {
             Timezone::MexicoCity => write!(f, "America/Mexico_City"), Timezone::Mazatlan => write!(f, "America/Mazatlan"), Timezone::Chihuahua => write!(f, "America/Chihuahua"),
             Timezone::Tijuana => write!(f, "America/Tijuana"), Timezone::Cancun => write!(f, "America/Cancun"), Timezone::Belize => write!(f, "America/Belize"), Timezone::CostaRica => write!(f, "America/Costa_Rica"),
             Timezone::ElSalvador => write!(f, "America/El_Salvador"), Timezone::Guatemala => write!(f, "America/Guatemala"), Timezone::Tegucigalpa => write!(f, "America/Tegucigalpa"),
-            Timezone::Managua => write!(f, "America/Managua"), Timezone::Panama => write!(f, "America/Panama")
+            Timezone::Managua => write!(f, "America/Managua"), Timezone::Panama => write!(f, "America/Panama"), Timezone::Apia => write!(f, "Pacific/Apia"),
+            Timezone::Auckland => write!(f, "Pacific/Auckland"), Timezone::Bougainville => write!(f, "Pacific/Bougainville"), Timezone::Chatham => write!(f, "Pacific/Chatham"),
+            Timezone::Efate => write!(f, "Pacific/Efate"), Timezone::Enderbury => write!(f, "Pacific/Enderbury"), Timezone::Tongatapu => write!(f, "Pacific/Tongatapu"),
+            Timezone::Fakaofo => write!(f, "Pacific/Fakaofo"), Timezone::Fiji => write!(f, "Pacific/Fiji"), Timezone::Funafuti => write!(f, "Pacific/Funafuti"),
+            Timezone::Gambier => write!(f, "Pacific/Gambier"), Timezone::Guadalcanal => write!(f, "Pacific/Guadalcanal"), Timezone::Guam => write!(f, "Pacific/Guam"),
+            Timezone::Johnston => write!(f, "Pacific/Johnston"), Timezone::Kanton => write!(f, "Pacific/Kanton"), Timezone::Kiritimati => write!(f, "Pacific/Kiritimati"),
+            Timezone::Kosrae => write!(f, "Pacific/Kosrae"), Timezone::Majuro => write!(f, "Pacific/Majuro"), Timezone::Kwajalein => write!(f, "Pacific/Kwajalein"),
+            Timezone::Midway => write!(f, "Pacific/Midway"), Timezone::Nauru => write!(f, "Pacific/Nauru"), Timezone::Niue => write!(f, "Pacific/Niue"),
+            Timezone::Marquesas => write!(f, "Pacific/Marquesas"), Timezone::Norfolk => write!(f, "Pacific/Norfolk"), Timezone::PagoPago => write!(f, "Pacific/Pago_Pago"),
+            Timezone::Noumea => write!(f, "Pacific/Noumea"), Timezone::Palau => write!(f, "Pacific/Palau"), Timezone::Pitcairn => write!(f, "Pacific/Pitcairn"),
+            Timezone::Pohnpei => write!(f, "Pacific/Pohnpei"), Timezone::PortMoresby => write!(f, "Pacific/Port_Moresby"), Timezone::Rarotonga => write!(f, "Pacific/Rarotonga"),
+            Timezone::Tahiti => write!(f, "Pacific/Tahiti"), Timezone::Tarawa => write!(f, "Pacific/Tarawa"), Timezone::Saipan => write!(f, "Pacific/Saipan"),
+            Timezone::Truk => write!(f, "Pacific/Truk"), Timezone::Wake => write!(f, "Pacific/Wake"), Timezone::Wallis => write!(f, "Pacific/Wallis"),
+            Timezone::Yap => write!(f, "Pacific/Yap")
         }
     }
 }
@@ -4009,5 +4031,16 @@ mod test {
         let query = QueryBuilder::update().unwrap().table("users").set("age", ValueType::Int32(26)).global_time_zone(Timezone::NewYork).set("last_online_date", ValueType::Datetime("CURRENT_TIMESTAMP".to_string())).where_("id", "=", ValueType::Int32(234)).finish();
 
         assert_eq!(query, "SET GLOBAL time_zone = America/New_York; UPDATE users SET age = 26, last_online_date = CURRENT_TIMESTAMP WHERE id = 234;");
+    }
+
+    #[test]
+    pub fn test_joins(){
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                                        .table("students s")
+                                                        .inner_join("grades g", "s.id", "=", "g.student_id")
+                                                        .where_("id", "=", ValueType::Int32(10))
+                                                        .finish();
+
+        assert_eq!(query, "SELECT * FROM students s INNER JOIN grades g ON s.id = g.student_id WHERE id = 10;");
     }
 }
