@@ -1132,6 +1132,22 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it adds the `INNER JOIN` keyword with it's synthax.
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){ 
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                             .table("students s")
+    ///                             .inner_join("grades g", "s.id", "=", "g.student_id")
+    ///                             .where_("id", "=", ValueType::Int32(10))
+    ///                             .finish();
+    ///
+    ///    assert_eq!(query, "SELECT * FROM students s INNER JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+    /// }
+    /// 
+    /// ```
     pub fn inner_join(&mut self, table: &str, left: &str, mark: &str, right: &str) -> &mut Self {
         self.query = format!("{} INNER JOIN {} ON {} {} {}", self.query, table, left, mark, right);
         self.list.push(KeywordList::InnerJoin);
