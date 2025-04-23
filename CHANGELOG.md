@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.16.1
+
+- Added documentation for `.inner_join()` method.
+
 ## v2.16.0
 
 - `.inner_join()` method added to `QueryBuilder` type.
