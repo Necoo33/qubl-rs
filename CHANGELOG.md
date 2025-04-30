@@ -2,6 +2,10 @@
 
 ## v2.16.1
 
+- `.left_join()` method added to `QueryBuilder` type. Also documentation added.
+
+## v2.16.1
+
 - Added documentation for `.inner_join()` method.
 
 ## v2.16.0
