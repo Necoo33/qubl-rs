@@ -1176,6 +1176,28 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it adds the `RIGHT JOIN` keyword with it's synthax.
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){ 
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                             .table("students s")
+    ///                             .right_join("grades g", "s.id", "=", "g.student_id")
+    ///                             .where_("id", "=", ValueType::Int32(10))
+    ///                             .finish();
+    ///
+    ///    assert_eq!(query, "SELECT * FROM students s RIGHT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+    /// }
+    /// 
+    /// ```
+    pub fn right_join(&mut self, table: &str, left: &str, mark: &str, right: &str) -> &mut Self {
+        self.query = format!("{} RIGHT JOIN {} ON {} {} {}", self.query, table, left, mark, right);
+        self.list.push(KeywordList::RightJoin);
+        self
+    }
+
 
     /// it adds the `UNION` keyword and its synthax. You can pass multiple queries to union with:
     /// 
@@ -2819,7 +2841,7 @@ pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, WhereIn, 
     WhereNotIn, AndIn, AndNotIn, OrIn, OrNotIn, JsonExtract, JsonContains, NotJsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
-    Field, Union, UnionAll, Timezone, GlobalTimezone, InnerJoin, LeftJoin
+    Field, Union, UnionAll, Timezone, GlobalTimezone, InnerJoin, LeftJoin, RightJoin
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
@@ -4088,5 +4110,13 @@ mod test {
                                          .finish();
 
         assert_eq!(query, "SELECT * FROM students s LEFT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                         .table("students s")
+                                         .right_join("grades g", "s.id", "=", "g.student_id")
+                                         .where_("id", "=", ValueType::Int32(10))
+                                         .finish();
+
+        assert_eq!(query, "SELECT * FROM students s RIGHT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
     }
 }
