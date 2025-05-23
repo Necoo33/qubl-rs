@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.19.0
+
+- `.cross_join()` and `.natural_join()` methods added to `QueryBuilder` type.
+
 ## v2.18.0
 
 - `.right_join()` method added to `QueryBuilder` type.

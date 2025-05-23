@@ -1198,6 +1198,50 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it adds the `CROSS JOIN` keyword with it's synthax.
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){ 
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                             .table("students s")
+    ///                             .cross_join("grades g")
+    ///                             .where_("id", "=", ValueType::Int32(10))
+    ///                             .finish();
+    ///
+    ///    assert_eq!(query, "SELECT * FROM students s RIGHT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+    /// }
+    /// 
+    /// ```
+    pub fn cross_join(&mut self, table: &str) -> &mut Self {
+        self.query = format!("{} CROSS JOIN {}", self.query, table);
+        self.list.push(KeywordList::RightJoin);
+        self
+    }
+
+    /// it adds the `NATURAL JOIN` keyword with it's synthax.
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main(){ 
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                             .table("students s")
+    ///                             .natural_join("grades g")
+    ///                             .where_("id", "=", ValueType::Int32(10))
+    ///                             .finish();
+    ///
+    ///    assert_eq!(query, "SELECT * FROM students s RIGHT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+    /// }
+    /// 
+    /// ```
+    pub fn natural_join(&mut self, table: &str) -> &mut Self {
+        self.query = format!("{} NATURAL JOIN {}", self.query, table);
+        self.list.push(KeywordList::RightJoin);
+        self
+    }
+
 
     /// it adds the `UNION` keyword and its synthax. You can pass multiple queries to union with:
     /// 
@@ -4118,5 +4162,21 @@ mod test {
                                          .finish();
 
         assert_eq!(query, "SELECT * FROM students s RIGHT JOIN grades g ON s.id = g.student_id WHERE id = 10;");
+
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                         .table("students s")
+                                         .cross_join("grades g")
+                                         .where_("id", "=", ValueType::Int32(10))
+                                         .finish();
+
+        assert_eq!(query, "SELECT * FROM students s CROSS JOIN grades g WHERE id = 10;");
+
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                         .table("students s")
+                                         .natural_join("grades g")
+                                         .where_("id", "=", ValueType::Int32(10))
+                                         .finish();
+                                        
+        assert_eq!(query, "SELECT * FROM students s NATURAL JOIN grades g WHERE id = 10;");
     }
 }
