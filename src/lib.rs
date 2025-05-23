@@ -674,6 +674,35 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    pub fn open_parenthesis(&mut self, parenthesis_type: BracketType) -> &mut Self {
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                _ => {
+                    self.query = format!("{} {} (", self.query, parenthesis_type);
+                    
+                    match parenthesis_type {
+                        BracketType::Where => self.list.push(KeywordList::LeftBracketWhere),
+                        BracketType::And => self.list.push(KeywordList::LeftBracketAnd),
+                        BracketType::Or => self.list.push(KeywordList::LeftBracketOr),
+                    }
+                }
+            },
+            None => panic!("that's impossible to come here.")
+        };
+
+        self
+    }
+
+    pub fn close_parenthesis(&mut self) -> &mut Self {
+        if !self.list.iter().any(|keyword| keyword == &KeywordList::LeftBracketWhere || keyword == &KeywordList::LeftBracketAnd || keyword == &KeywordList::LeftBracketOr) {
+            panic!("There is no left bracket exists on that query, panicking....")
+        } else {
+            self.query = format!("{})", self.query)
+        }
+
+        self
+    }
+
     /// it benefits to set timezone when you make your query. It's very flexible, always put on very beginning of the query, you can use it later than any other method.
     pub fn time_zone(&mut self, timezone: Timezone) -> &mut Self {
         self.query = format!("SET time_zone = {}; {}", timezone, self.query);
@@ -932,6 +961,14 @@ impl<'a> QueryBuilder<'a> {
                                             self.query = format!("{} OR {} LIKE '%{}%'", self.query, column, operand)
                                         }
                                     }
+                                }
+                            }
+                        } else if keyword == &KeywordList::LeftBracketWhere || keyword == &KeywordList::LeftBracketAnd || keyword == &KeywordList::LeftBracketOr {
+                            for (i, column) in columns.into_iter().enumerate() {
+                                if i == 0 {
+                                    self.query = format!("{}{} LIKE '%{}%'", self.query, column, operand)
+                                } else {
+                                    self.query = format!("{}, AND {} LIKE '%{}%'", self.query, column, operand)
                                 }
                             }
                         } else {
@@ -1678,6 +1715,38 @@ impl<'a> QueryBuilder<'a> {
                     }
                 }
             },
+            KeywordList::LeftBracketWhere => match path {
+                Some(path) => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle {
+                        JsonValue::Initial(initial) => match initial {
+                            ValueType::JsonString(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::String(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            _ => self.query = format!("{} WHERE (JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
+                        },
+                        _ => self.query = format!("{} WHERE (JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
+                    }
+                },
+                None => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle {
+                        JsonValue::Initial(initial) => match initial {
+                            ValueType::JsonString(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
+                            ValueType::String(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE (JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            _ => self.query = format!("{} WHERE (JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
+                        },
+                        _ => self.query = format!("{} WHERE (JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
+                    }
+                }
+            },
             KeywordList::And => match path {
                 Some(path) => {
                     let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
@@ -1760,6 +1829,88 @@ impl<'a> QueryBuilder<'a> {
                     }
                 }
             },
+            KeywordList::LeftBracketAnd => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} AND (JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} AND 8JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND (JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                _ => self.query = format!("{} AND (JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                            },
+                            _ => self.query = format!("{} AND (JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    _ => self.query = format!("{}AND (JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                                },
+                                _ => self.query = format!("{}AND (JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} AND (JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} AND (JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND (JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                _ => self.query = format!("{} AND (JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                            },
+                            _ => self.query = format!("{} AND (JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND (JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    _ => self.query = format!("{}AND (JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                                },
+                                _ => self.query = format!("{}AND (JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                            }
+                        }
+                    }
+                }
+            },
             KeywordList::Or => match path {
                 Some(path) => {
                     let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
@@ -1837,6 +1988,88 @@ impl<'a> QueryBuilder<'a> {
                                     _ => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}OR JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                            }
+                        }
+                    }
+                }
+            },
+            KeywordList::LeftBracketOr => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                _ => self.query = format!("{} OR (JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                            },
+                            _ => self.query = format!("{} OR (JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    _ => self.query = format!("{}OR (JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                                },
+                                _ => self.query = format!("{}OR (JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR (JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                _ => self.query = format!("{} OR (JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                            },
+                            _ => self.query = format!("{} OR (JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR (JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    _ => self.query = format!("{}OR (JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                                },
+                                _ => self.query = format!("{}OR (JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                             }
                         }
                     }
@@ -1926,6 +2159,38 @@ impl<'a> QueryBuilder<'a> {
                     }
                 }
             },
+            KeywordList::LeftBracketWhere => match path {
+                Some(path) => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle {
+                        JsonValue::Initial(initial) => match initial {
+                            ValueType::JsonString(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '\"{}\"', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::String(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '{}', '${}')", first_half.unwrap(), column, needle, path),
+                            _ => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
+                        },
+                        _ => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, {}, '${}')", first_half.unwrap(), column, needle, path)
+                    }
+                },
+                None => {
+                    let mut split_the_query = self.query.split(" WHERE ");
+
+                    let first_half = split_the_query.nth(0);
+
+                    match needle {
+                        JsonValue::Initial(initial) => match initial {
+                            ValueType::JsonString(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '\"{}\"')", first_half.unwrap(), column, needle),
+                            ValueType::String(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            ValueType::Datetime(needle) => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, '{}')", first_half.unwrap(), column, needle),
+                            _ => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
+                        },
+                        _ => self.query = format!("{} WHERE (NOT JSON_CONTAINS({}, {})", first_half.unwrap(), column, needle)
+                    }
+                }
+            },
             KeywordList::And => match path {
                 Some(path) => {
                     let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
@@ -2008,6 +2273,88 @@ impl<'a> QueryBuilder<'a> {
                     }
                 }
             },
+            KeywordList::LeftBracketAnd => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                _ => self.query = format!("{} AND (NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                            },
+                            _ => self.query = format!("{} AND (NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    _ => self.query = format!("{}AND (NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                                },
+                                _ => self.query = format!("{}AND (NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" AND ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No AND query in QueryBuilder but The AND keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} AND (NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                _ => self.query = format!("{} AND (NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                            },
+                            _ => self.query = format!("{} AND (NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} AND {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}AND (NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    _ => self.query = format!("{}AND (NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                                },
+                                _ => self.query = format!("{}AND (NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                            }
+                        }
+                    }
+                }
+            },
             KeywordList::Or => match path {
                 Some(path) => {
                     let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
@@ -2085,6 +2432,88 @@ impl<'a> QueryBuilder<'a> {
                                     _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                                 },
                                 _ => self.query = format!("{}OR NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                            }
+                        }
+                    }
+                }
+            },
+            KeywordList::LeftBracketOr => match path {
+                Some(path) => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '\"{}\"', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::String(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '{}', '${}')", split_the_query[0], column, needle, path),
+                                _ => self.query = format!("{} OR (NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                            },
+                            _ => self.query = format!("{} OR (NOT JSON_CONTAINS({}, {}, '${}')", split_the_query[0], column, needle, path)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '\"{}\"', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::String(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '{}', '${}')", concatenated_string, column, needle, path),
+                                    _ => self.query = format!("{}OR (NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                                },
+                                _ => self.query = format!("{}OR (NOT JSON_CONTAINS({}, {}, '${}')", concatenated_string, column, needle, path)
+                            }
+                        }
+                    }
+                },
+                None => {
+                    let split_the_query = self.query.split(" OR ").collect::<Vec<&str>>();
+
+                    let length_of_the_split_the_query = split_the_query.len();
+
+                    match split_the_query.len() {
+                        0 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        1 => panic!("There Is No OR query in QueryBuilder but The OR keyword exist in keyword list, panicking."),
+                        2 => match needle {
+                            JsonValue::Initial(initial) => match initial {
+                                ValueType::JsonString(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '\"{}\"')",  split_the_query[0], column, needle),
+                                ValueType::String(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                ValueType::Datetime(needle) => self.query = format!("{} OR (NOT JSON_CONTAINS({}, '{}')",  split_the_query[0], column, needle),
+                                _ => self.query = format!("{} OR (NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                            },
+                            _ => self.query = format!("{} OR (NOT JSON_CONTAINS({}, {})",  split_the_query[0], column, needle)
+                        },
+                        _ => {
+                            let mut concatenated_string = String::new();
+
+                            for (index, chunk) in  split_the_query.into_iter().enumerate() {
+                                if index == 0 {
+                                    concatenated_string = chunk.to_string();
+                                } else if index + 1 != length_of_the_split_the_query {
+                                    concatenated_string = format!("{} OR {} ", concatenated_string, chunk)
+                                }
+                            }
+
+                            match needle {
+                                JsonValue::Initial(initial) => match initial {
+                                    ValueType::JsonString(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '\"{}\"')", concatenated_string, column, needle),
+                                    ValueType::String(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    ValueType::Datetime(needle) => self.query = format!("{}OR (NOT JSON_CONTAINS({}, '{}')", concatenated_string, column, needle),
+                                    _ => self.query = format!("{}OR (NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
+                                },
+                                _ => self.query = format!("{}OR (NOT JSON_CONTAINS({}, {})", concatenated_string, column, needle)
                             }
                         }
                     }
@@ -2885,13 +3314,29 @@ pub enum KeywordList {
     Select, Update, Delete, Insert, Count, Table, Where, Or, And, Set, 
     Finish, OrderBy, GroupBy, Having, Like, Limit, Offset, IfNotExist, Create, Use, WhereIn, 
     WhereNotIn, AndIn, AndNotIn, OrIn, OrNotIn, JsonExtract, JsonContains, NotJsonContains, JsonArrayAppend, JsonRemove, JsonSet, JsonReplace, 
-    Field, Union, UnionAll, Timezone, GlobalTimezone, InnerJoin, LeftJoin, RightJoin
+    Field, Union, UnionAll, Timezone, GlobalTimezone, InnerJoin, LeftJoin, RightJoin, LeftBracketWhere, LeftBracketAnd, LeftBracketOr, RightBracket
 }
 
 /// QueryType enum. It helps to detect the type of a query with more optimized way when is needed.
 #[derive(Debug, Clone)]
 pub enum QueryType {
     Select, Update, Delete, Insert, Null, Create, Count
+}
+
+/// BracketType enum. It helps you to open brackets with Corresponding keyword of it's variant on sql queries.
+#[derive(Debug, Clone)]
+pub enum BracketType {
+    Where, And, Or
+}
+
+impl std::fmt::Display for BracketType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BracketType::Where => write!(f, "WHERE"),
+            BracketType::And => write!(f, "AND"),
+            BracketType::Or => write!(f, "OR")
+        }
+    }
 }
 
 /// ValueType enum. It benefits to detect and format the value with optimized way when you have to work with exact column values. 
