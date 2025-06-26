@@ -6,15 +6,17 @@ That builder enforces you to start your sql query from ground up and build it bo
 
 It currently supports most basic types of queries: `SELECT`, `INSERT`, `DELETE`, `UPDATE`, `COUNT`.
 
-It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`, `HAVING`, `UNION`, `UNION ALL`, `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`. 
+It also supports this operators for now: `WHERE`, `AND`, `OR`, `SET`, `LIMIT`, `OFFSET`, `ORDER BY`, `LIKE`, `IN`, `NOT IN`, `GROUP BY`, `HAVING`, `UNION`, `UNION ALL`, `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `CROSS JOIN`, `NATURAL JOIN`. 
 
 It supports that mysql functions: `FIELD()`, `COUNT()`, `RAND()`
 
 And it supports the json functions for now: `JSON_EXTRACT()`, `JSON_CONTAINS()`, `JSON_ARRAY_APPEND()`, `JSON_REMOVE()`, `JSON_SET()`, `JSON_REPLACE()`
 
+It also supports both single and nested parenthesis with it's `.open_parenthesis()` & `.open_parenthesis_with()` methods.
+
 ## Current Status
 
-This project has reached it's first major release, it never take a breaking change for a long time unless there is a breaking api change on rust standart liblary. In that release branch, we'll focused to add JSON functions mostly.
+This project is pretty much matured, there is so little room to add new features until next major release.
 
 Consider to give a like that liblary on github if you find it useful: [qubl-rs](https://github.com/Necoo33/qubl-rs)
 

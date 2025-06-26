@@ -666,6 +666,8 @@ impl<'a> QueryBuilder<'a> {
     /// 
     ///     assert_eq!(query, "SELECT * FROM users WHERE class = '10/c' OR id NOT IN (1, 5, 10);")
     /// }
+    /// 
+    /// ```
     pub fn or_not_in_custom(&mut self, column: &str, query: &str) -> &mut Self {
         self.query = format!("{} OR {} NOT IN ({})", self.query, column, query);
 
@@ -674,6 +676,27 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it opens a parenthesis without declaring it's first parameter. It adds this string to the query: "... (WHERE / AND / OR) (" It's suitable for more custom approach with parenthesis, if you only want to use WHERE, AND & OR queries, we suggest you to check `.open_parenthesis_with()` method.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main {
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                             .table("users")
+    ///                             .where_("grades", ">", ValueType::Int32(80))
+    ///                             .open_parenthesis(BracketType::And)
+    ///                             .and("height", ">", ValueType::Int32(170))
+    ///                             .or("weight", ">", ValueType::Int32(60))
+    ///                             .close_parenthesis() // you have to close the parenthesis, otherwise it'll panic.
+    ///                             .finish();
+    ///
+    ///    assert_eq!(query, "SELECT * FROM users WHERE grades > 80 AND ( AND height > 170 OR weight > 60);");
+    /// 
+    /// }
+    /// 
+    /// ```
     pub fn open_parenthesis(&mut self, parenthesis_type: BracketType) -> &mut Self {
         match self.list.last() {
             Some(keyword) => match keyword {
@@ -693,9 +716,63 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// it opens a parenthesis with declaring it's first parameter, it suits very well the most common use cases of parenthesis.
+    /// 
+    /// ```rust
+    /// 
+    /// use qubl::{QueryBuilder, ValueType};
+    /// 
+    /// fn main {
+    /// 
+    ///    let query = QueryBuilder::select(vec!["*"]).unwrap()
+    ///                                    .table("users")
+    ///                                    .where_("grades", ">", ValueType::Int32(80))
+    ///                                    .open_parenthesis_with(BracketType::And, "height", ">", ValueType::Int32(170))
+    ///                                    .open_parenthesis_with(BracketType::Or, "weight", ">", ValueType::Int32(50))
+    ///                                    .and("weight", "<", ValueType::Int32(70))
+    ///                                    .close_parenthesis()
+    ///                                    .close_parenthesis()
+    ///                                    .finish();          
+    ///
+    ///    assert_eq!(query, "SELECT * FROM users WHERE grades > 80 AND (height > 170 OR (weight > 50 AND weight < 70));");    
+    /// 
+    /// }
+    /// 
+    /// ```
+    pub fn open_parenthesis_with(&mut self, parenthesis_type: BracketType, column: &str, mut mark: &str, value: ValueType) -> &mut Self {
+        if let ValueType::Null = value {
+            match mark {
+                "=" => mark = "IS",
+                "!=" | "<>" => mark = "IS NOT",
+                "IS" | "IS NOT" => (),
+                _ => mark = "IS"
+            }
+        }
+
+        match self.list.last() {
+            Some(keyword) => match keyword {
+                _ => {
+                    self.query = format!("{} {} ({} {} {}", self.query, parenthesis_type, column, mark, value);
+                    
+                    match parenthesis_type {
+                        BracketType::Where => self.list.push(KeywordList::LeftBracketWhere),
+                        BracketType::And => self.list.push(KeywordList::LeftBracketAnd),
+                        BracketType::Or => self.list.push(KeywordList::LeftBracketOr),
+                    }
+                }
+            },
+            None => panic!("that's impossible to come here.")
+        };
+
+        self
+    }
+
+    /// Parenthesis closer for open parenthesis. The combined amount of `.open_parenthesis()` and `.open_parenthesis_with()` must match to be the query produced correctly. It'll panic if there is no call of these methods or query don't have "(" character.
     pub fn close_parenthesis(&mut self) -> &mut Self {
         if !self.list.iter().any(|keyword| keyword == &KeywordList::LeftBracketWhere || keyword == &KeywordList::LeftBracketAnd || keyword == &KeywordList::LeftBracketOr) {
-            panic!("There is no left bracket exists on that query, panicking....")
+            if !self.query.contains("(") {
+                panic!("There is no left bracket exists on that query, panicking....")
+            }
         } else {
             self.query = format!("{})", self.query)
         }
@@ -1448,6 +1525,9 @@ impl<'a> QueryBuilder<'a> {
         match self.list.last() {
             Some(keyword) => {
                 match keyword {
+                    KeywordList::LeftBracketWhere | KeywordList::LeftBracketAnd | KeywordList::LeftBracketOr => {
+                        panic!("you cannot use .json_extract() method with bracket methods for now, this will be implemented on future updates.")
+                    },
                     KeywordList::Where => {
                         if _as.is_some() {
                             println!("Warning: You've gave _as value to some variant and used it later than 'WHERE' keyword on .json_extract() method. In that usage, that value has no effect, you should gave it none value.");
@@ -4623,5 +4703,41 @@ mod test {
                                          .finish();
                                         
         assert_eq!(query, "SELECT * FROM students s NATURAL JOIN grades g WHERE id = 10;");
+    }
+
+    #[test]
+    pub fn test_parentheses(){
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                                        .table("users")
+                                                        .where_("grades", ">", ValueType::Int32(80))
+                                                        .open_parenthesis(BracketType::And)
+                                                        .and("height", ">", ValueType::Int32(170))
+                                                        .or("weight", ">", ValueType::Int32(60))
+                                                        .close_parenthesis()
+                                                        .finish();
+
+        assert_eq!(query, "SELECT * FROM users WHERE grades > 80 AND ( AND height > 170 OR weight > 60);");
+
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                                .table("users")
+                                                .where_("grades", ">", ValueType::Int32(80))
+                                                .open_parenthesis_with(BracketType::And, "height", ">", ValueType::Int32(170))
+                                                .or("weight", ">", ValueType::Int32(60))
+                                                .close_parenthesis()
+                                                .finish();                                                  
+
+        assert_eq!(query, "SELECT * FROM users WHERE grades > 80 AND (height > 170 OR weight > 60);");
+
+        let query = QueryBuilder::select(vec!["*"]).unwrap()
+                                        .table("users")
+                                        .where_("grades", ">", ValueType::Int32(80))
+                                        .open_parenthesis_with(BracketType::And, "height", ">", ValueType::Int32(170))
+                                        .open_parenthesis_with(BracketType::Or, "weight", ">", ValueType::Int32(50))
+                                        .and("weight", "<", ValueType::Int32(70))
+                                        .close_parenthesis()
+                                        .close_parenthesis()
+                                        .finish();          
+
+        assert_eq!(query, "SELECT * FROM users WHERE grades > 80 AND (height > 170 OR (weight > 50 AND weight < 70));");             
     }
 }

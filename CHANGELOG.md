@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.20.0
+
+- `.open_parenthesis()`, `.open_parenthesis_with()` and `.close_parenthesis()` methods added to the `QueryBuilder` type.
+
 ## v2.19.0
 
 - `.cross_join()` and `.natural_join()` methods added to `QueryBuilder` type.
